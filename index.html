@@ -574,7 +574,50 @@
         <p>&copy; 2026 Dinas Kesehatan / Pelayanan Perizinan Terpadu Badung. Siap di-deploy ke Firebase & Terhubung ke Google Drive.</p>
     </footer>
 
-    <script type="module">
+    <script type="module"><script>
+window.switchView = function(view) {
+  // views available in the page
+  const views = ['form', 'login', 'admin', 'settings'];
+  views.forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (!el) return;
+    if (v === view) el.classList.remove('hidden'); else el.classList.add('hidden');
+  });
+
+  // update simple nav button styles (IDs from your header)
+  const btnMap = { form: 'nav-form-btn', login: 'nav-login-btn', settings: 'nav-settings-btn' };
+  Object.entries(btnMap).forEach(([v, id]) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    if (v === view) {
+      b.classList.remove('bg-indigo-600', 'text-white');
+      b.classList.add('bg-white', 'text-indigo-700');
+    } else {
+      b.classList.remove('bg-white', 'text-indigo-700');
+      b.classList.add('bg-indigo-600', 'text-white');
+    }
+  });
+
+  // protect admin view if not logged in
+  if (view === 'admin') {
+    if (!sessionStorage.getItem('is_admin_logged_in')) {
+      // auto-redirect to login and show notice
+      if (typeof showModal === 'function') {
+        showModal('Akses Ditolak', 'Silakan login admin terlebih dahulu.', false);
+      } else {
+        alert('Silakan login admin terlebih dahulu.');
+      }
+      // show login view instead
+      views.forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if (el) el.classList.add('hidden');
+      });
+      const loginEl = document.getElementById('view-login');
+      if (loginEl) loginEl.classList.remove('hidden');
+    }
+  }
+};
+</script>
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
