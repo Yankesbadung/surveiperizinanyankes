@@ -742,8 +742,12 @@ window.loadDashboardData = async function() {
         window.logoutAdmin = function() {
             sessionStorage.removeItem('is_admin_logged_in');
             switchView('form');
+            {
+  "jalur": "indeks.html",
+  "ref": "utama",
+  "repo": "surveiperizinanyankes/Yankesbadung"
+}
         };
-
         window.showModal = function(title, message, isSuccess = true) {
             const modal = document.getElementById('modal-container');
             const icon = document.getElementById('modal-icon');
