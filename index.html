@@ -1,554 +1,582 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Survei Kepuasan Pelayanan Perizinan Kesehatan</title>
+    <title>Survei Kepuasan Pelayanan Perizinan Kesehatan - Yankes Badung</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Inter & FontAwesome -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- jsPDF & SheetJS (xlsx) for PDF and Excel Export -->
+    <!-- SheetJS untuk Export Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF untuk Export PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/plugin/jspdf.plugin.autotable.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="h-full bg-slate-50 text-slate-800 flex flex-col justify-between">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <header class="bg-indigo-700 text-white shadow-md">
-        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm">
+    <!-- Header / Navbar -->
+    <header class="bg-teal-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3 text-center sm:text-left">
+                <div class="bg-white text-teal-700 p-2.5 rounded-xl shadow">
                     <i class="fa-solid fa-hospital-user text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold leading-tight">SKM Perizinan Kesehatan Yankes Badung</h1>
-                    <p class="text-xs text-indigo-200">Klinik • Rumah Sakit • Hatra • Laboratorium</p>
+                    <h1 class="text-lg font-bold leading-tight">Yankes Badung</h1>
+                    <p class="text-xs text-teal-100">Bidang Pelayanan Kesehatan - Dinas Kesehatan Kabupaten Badung</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <button id="nav-form-btn" onclick="switchView('form')" class="px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square"></i> Isi Survei
+                <button onclick="switchView('survey')" id="navSurveyBtn" class="bg-teal-800 hover:bg-teal-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border border-teal-600">
+                    <i class="fa-solid fa-pen-to-square mr-1.5"></i> Isi Survei
                 </button>
-                <button id="nav-login-btn" onclick="switchView('login')" class="px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-2">
-                    <i class="fa-solid fa-lock"></i> Login Admin
-                </button>
-                <button id="nav-settings-btn" onclick="switchView('settings')" class="px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-2">
-                    <i class="fa-brands fa-google-drive"></i>
+                <button onclick="checkAdminAccess()" id="navAdminBtn" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border border-teal-500">
+                    <i class="fa-solid fa-lock mr-1.5"></i> Admin Login
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
+    <!-- Main Container -->
+    <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-grow">
 
-        <!-- Modal Dialog -->
-        <div id="modal-container" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-center transform transition-all">
-                <div id="modal-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl"></div>
-                <h3 id="modal-title" class="text-lg font-bold text-slate-900 mb-2"></h3>
-                <p id="modal-message" class="text-sm text-slate-600 mb-6"></p>
-                <button onclick="closeModal()" class="w-full py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition">Tutup</button>
+        <!-- ================= SECTION: FORMULIR SURVEI ================= -->
+        <section id="surveySection" class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden p-6 sm:p-10 transition-all duration-300">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Survei Kepuasan Masyarakat (SKM)</h2>
+                <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                    Formulir ini bertujuan untuk mengukur tingkat kepuasan pemohon terhadap standar pelayanan perizinan bidang kesehatan di Kabupaten Badung guna meningkatkan kualitas pelayanan publik secara berkelanjutan.
+                </p>
             </div>
-        </div>
 
-        <!-- Views (forms and admin) -->
-        <!-- (The HTML form content is unchanged and kept as in original repository) -->
+            <!-- CARA MENGAKSES PELAYANAN -->
+            <div class="mb-8 bg-teal-50 border border-teal-200 rounded-xl p-5 shadow-sm">
+                <h3 class="text-base font-bold text-teal-900 mb-3 flex items-center">
+                    <i class="fa-solid fa-circle-info text-teal-600 mr-2"></i> Cara Mengakses Pelayanan Perizinan Kesehatan
+                </h3>
+                <ol class="list-decimal list-inside text-sm text-teal-800 space-y-2 leading-relaxed">
+                    <li><strong class="font-semibold">Pengajuan Permohonan:</strong> Pemohon menyiapkan berkas persyaratan perizinan lengkap sesuai jenis layanan melalui sistem perizinan online daerah/OSS.</li>
+                    <li><strong class="font-semibold">Verifikasi Berkas:</strong> Tim Bidang Pelayanan Kesehatan Dinas Kesehatan Kabupaten Badung melakukan verifikasi administratif dan teknis.</li>
+                    <li><strong class="font-semibold">Peninjauan Lapangan (Jika Diperlukan):</strong> Dilakukan peninjauan lokasi fasilitas kesehatan oleh tim teknis.</li>
+                    <li><strong class="font-semibold">Penerbitan Izin:</strong> Surat Keputusan / Dokumen Izin diterbitkan dan diserahkan kepada pemohon.</li>
+                </ol>
+            </div>
 
-        <!-- For brevity in this commit, the page markup above (forms, admin, settings) is left identical to the original file. -->
+            <form id="surveyForm" onsubmit="submitSurvey(event)" class="space-y-6">
+                <!-- Data Responden -->
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
+                    <h3 class="text-base font-bold text-slate-800 flex items-center border-b pb-2">
+                        <i class="fa-solid fa-user-gear text-teal-600 mr-2"></i> Identitas Responden & Layanan
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Responden <span class="text-red-500">*</span></label>
+                            <input type="text" id="nama" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nomor WhatsApp / Kontak <span class="text-red-500">*</span></label>
+                            <input type="tel" id="telepon" required placeholder="08xxxxxxxxxx" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Jenis Layanan Perizinan <span class="text-red-500">*</span></label>
+                            <select id="jenisLayanan" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                <option value="" disabled selected>-- Pilih Jenis Layanan --</option>
+                                <option value="Klinik">Klinik</option>
+                                <option value="Rumah Sakit">Rumah Sakit</option>
+                                <option value="Hatra (Pengobat Tradisional)">Hatra (Pengobat Tradisional)</option>
+                                <option value="Laboratorium Kesehatan">Laboratorium Kesehatan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Pendidikan Responden <span class="text-red-500">*</span></label>
+                            <select id="pendidikan" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                <option value="" disabled selected>-- Pilih Pendidikan Terakhir --</option>
+                                <option value="SMA / Sederajat">SMA / Sederajat</option>
+                                <option value="Diploma (D3/D4)">Diploma (D3/D4)</option>
+                                <option value="Sarjana (S1)">Sarjana (S1)</option>
+                                <option value="Magister / Doktor (S2/S3)">Magister / Doktor (S2/S3)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kedudukan Responden <span class="text-red-500">*</span></label>
+                            <select id="kedudukan" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                <option value="" disabled selected>-- Pilih Kedudukan --</option>
+                                <option value="Pemilik / Owner">Pemilik / Owner</option>
+                                <option value="Direktur / Pimpinan Faskes">Direktur / Pimpinan Faskes</option>
+                                <option value="Penanggung Jawab Teknis">Penanggung Jawab Teknis</option>
+                                <option value="Pengelola / Staf Administrasi">Pengelola / Staf Administrasi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Fasilitas / Perusahaan <span class="text-red-500">*</span></label>
+                            <input type="text" id="namaFaskes" required placeholder="Contoh: Klinik Sehat Badung" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pertanyaan Survei (Skala 1 s.d. 9 Vertikal Kebawah) -->
+                <div class="space-y-6 pt-2">
+                    <h3 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center">
+                        <i class="fa-solid fa-list-check text-teal-600 mr-2"></i> Penilaian Unsur Pelayanan (Skala 1 - 9)
+                    </h3>
+
+                    <!-- Pertanyaan 1 -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">1. Bagaimana pemahaman Anda tentang kemudahan persyaratan perizinan kesehatan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Tidak Mudah</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Mudah</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Pertanyaan 2 -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">2. Bagaimana kemudahan sistem atau alur prosedur pelayanan perizinan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Berbelit-belit</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Mudah</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Pertanyaan 3 -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">3. Bagaimana kecepatan waktu dalam proses penyelesaian perizinan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Lambat</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Cepat</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Pertanyaan 4 -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">4. Bagaimana kewajaran biaya/tarif dalam pengurusan perizinan (jika ada retribusi resmi)?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Mahal</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Wajar / Sesuai Ketentuan</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Pertanyaan 5 -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">5. Bagaimana kompetensi, keramahan, dan kesopanan petugas pelayanan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Tidak Kompeten / Tidak Ramah</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Kompeten & Sangat Ramah</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saran & Masukan -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kritik, Saran, atau Masukan untuk Peningkatan Pelayanan</label>
+                    <textarea id="saran" rows="3" placeholder="Tuliskan saran atau masukan Anda di sini..." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white"></textarea>
+                </div>
+
+                <!-- Tombol Submit -->
+                <div class="pt-4">
+                    <button type="submit" id="submitBtn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition shadow-md flex items-center justify-center space-x-2 text-base">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Kirim Survei Kepuasan</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ================= SECTION: ADMIN LOGIN ================= -->
+        <section id="loginSection" class="hidden max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+            <div class="text-center mb-6">
+                <div class="bg-teal-100 text-teal-700 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fa-solid fa-user-shield text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Login Admin Yankes</h2>
+                <p class="text-xs text-slate-500 mt-1">Masukkan kredensial administrator untuk melihat data survei</p>
+            </div>
+
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Username</label>
+                    <input type="text" id="adminUser" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Masukkan username">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Password</label>
+                    <input type="password" id="adminPass" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Masukkan password">
+                </div>
+                <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2.5 rounded-lg transition shadow-sm text-sm">
+                    Masuk ke Dashboard
+                </button>
+            </form>
+        </section>
+
+        <!-- ================= SECTION: ADMIN DASHBOARD ================= -->
+        <section id="adminSection" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-5 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-slate-900">Dashboard Admin & Rekapitulasi</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Kelola data responden dan ekspor hasil survei</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="downloadExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-file-excel"></i><span>Excel</span>
+                        </button>
+                        <button onclick="downloadPDF()" class="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-file-pdf"></i><span>PDF</span>
+                        </button>
+                        <button onclick="logoutAdmin()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-right-from-bracket"></i><span>Keluar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistik Ringkas -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-teal-50 border border-teal-100 p-4 rounded-xl">
+                        <p class="text-xs font-semibold text-teal-700 uppercase">Total Responden</p>
+                        <p id="statTotal" class="text-2xl font-extrabold text-teal-900 mt-1">0</p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                        <p class="text-xs font-semibold text-blue-700 uppercase">Rata-rata Skor Kepuasan</p>
+                        <p id="statScore" class="text-2xl font-extrabold text-blue-900 mt-1">0.00 / 9.00</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                        <p class="text-xs font-semibold text-slate-600 uppercase">Status Sistem</p>
+                        <p class="text-xs font-bold text-slate-800 mt-2 flex items-center"><i class="fa-solid fa-circle-check text-teal-600 mr-1.5"></i> Database Aktif</p>
+                    </div>
+                </div>
+
+                <!-- Tabel Responden -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 uppercase tracking-wider font-semibold border-b">
+                                <th class="p-3">Waktu</th>
+                                <th class="p-3">Nama / Faskes</th>
+                                <th class="p-3">Layanan</th>
+                                <th class="p-3">Pendidikan / Kedudukan</th>
+                                <th class="p-3 text-center">Skor Rata2</th>
+                                <th class="p-3">Saran</th>
+                                <th class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="responseTableBody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Data akan dimuat melalui JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-8">
-        <p>&copy; 2026 Dinas Kesehatan / Pelayanan Perizinan Terpadu Badung. Siap di-deploy ke Firebase & Terhubung ke Google Drive.</p>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-12 text-center text-xs text-slate-500">
+        <p>&copy; 2026 Bidang Pelayanan Kesehatan - Dinas Kesehatan Kabupaten Badung.</p>
     </footer>
 
-    <!-- Cleaned and fixed JavaScript: single module script (no nested <script>), removed duplicate declarations, added missing helpers -->
-    <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Modal Notifikasi Berhasil -->
+    <div id="successModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-slate-100 space-y-4">
+            <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900">Terima Kasih!</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">Survei kepuasan Anda telah berhasil dikirim dan tersimpan ke sistem database.</p>
+            <button onclick="closeSuccessModal()" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-xl font-semibold text-xs transition shadow-md">
+                Tutup / Isi Lagi
+            </button>
+        </div>
+    </div>
 
-    // Application id and firebase config (injected by embedding env if provided)
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'health-licensing-survey-app';
+    <!-- Script Aplikasi -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKeyForDemoPurposesOnly12345",
+            authDomain: "yankes-badung-skm.firebaseapp.com",
+            projectId: "yankes-badung-skm",
+            storageBucket: "yankes-badung-skm.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456"
+        };
 
-    let firebaseConfig = {};
-    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-      try {
-        firebaseConfig = JSON.parse(__firebase_config);
-      } catch (e) {
-        console.warn('Invalid __firebase_config JSON:', e);
-        firebaseConfig = {};
-      }
-    }
-
-    let app = null, db = null, auth = null;
-    let isFirebaseConnected = false;
-    let localFallbackData = [];
-    let cachedSurveyData = [];
-
-    // Utility: escape HTML for insertion into DOM
-    function escapeHtml(str) {
-      if (!str && str !== 0) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    // Initialize Firebase only if valid config is provided
-    try {
-      if (firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey) {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        isFirebaseConnected = true;
-      } else {
-        isFirebaseConnected = false;
-      }
-    } catch (err) {
-      console.warn('Firebase initialization error:', err);
-      isFirebaseConnected = false;
-    }
-
-    async function initAuth() {
-      if (!isFirebaseConnected || !auth) return;
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
+        let db;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.firestore();
+        } catch (e) {
+            console.warn("Firebase offline mode / running on local storage fallback.");
         }
-      } catch (err) {
-        console.error('Auth error:', err);
-      }
-    }
-    initAuth();
 
-    // Simple UI view switcher
-    window.switchView = function(view) {
-      const views = ['form', 'login', 'admin', 'settings'];
-      views.forEach(v => {
-        const el = document.getElementById('view-' + v);
-        if (!el) return;
-        if (v === view) el.classList.remove('hidden'); else el.classList.add('hidden');
-      });
+        let localResponses = JSON.parse(localStorage.getItem('skm_responses') || '[]');
 
-      const btnMap = { form: 'nav-form-btn', login: 'nav-login-btn', settings: 'nav-settings-btn' };
-      Object.entries(btnMap).forEach(([v, id]) => {
-        const b = document.getElementById(id);
-        if (!b) return;
-        if (v === view) {
-          b.classList.remove('bg-indigo-600', 'text-white');
-          b.classList.add('bg-white', 'text-indigo-700');
-        } else {
-          b.classList.remove('bg-white', 'text-indigo-700');
-          b.classList.add('bg-indigo-600', 'text-white');
+        function switchView(view) {
+            document.getElementById('surveySection').classList.add('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+
+            if (view === 'survey') {
+                document.getElementById('surveySection').classList.remove('hidden');
+            } else if (view === 'login') {
+                document.getElementById('loginSection').classList.remove('hidden');
+            } else if (view === 'admin') {
+                document.getElementById('adminSection').classList.remove('hidden');
+                loadAdminData();
+            }
         }
-      });
 
-      if (view === 'admin') {
-        if (!sessionStorage.getItem('is_admin_logged_in')) {
-          showModal('Akses Ditolak', 'Silakan login admin terlebih dahulu.', false);
-          views.forEach(v => {
-            const el = document.getElementById('view-' + v);
-            if (el) el.classList.add('hidden');
-          });
-          const loginEl = document.getElementById('view-login');
-          if (loginEl) loginEl.classList.remove('hidden');
+        function checkAdminAccess() {
+            if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+                switchView('admin');
+            } else {
+                switchView('login');
+            }
         }
-      }
-    };
 
-    window.showModal = function(title, message, isSuccess = true) {
-      const modal = document.getElementById('modal-container');
-      const icon = document.getElementById('modal-icon');
-      const titleEl = document.getElementById('modal-title');
-      const msgEl = document.getElementById('modal-message');
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('adminUser').value;
+            const p = document.getElementById('adminPass').value;
 
-      if (titleEl) titleEl.textContent = title;
-      if (msgEl) msgEl.textContent = message;
-
-      if (icon) {
-        if (isSuccess) {
-          icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 text-xl";
-          icon.innerHTML = '<i class="fa-solid fa-check"></i>';
-        } else {
-          icon.className = "w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 text-xl";
-          icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            if (u === 'yankesbadung' && p === 'Pelayanankesehatan1') {
+                sessionStorage.setItem('isAdminLoggedIn', 'true');
+                switchView('admin');
+                document.getElementById('adminUser').value = '';
+                document.getElementById('adminPass').value = '';
+            } else {
+                alert('Username atau Password salah!');
+            }
         }
-      }
-      if (modal) modal.classList.remove('hidden');
-    };
 
-    window.closeModal = function() {
-      const modal = document.getElementById('modal-container');
-      if (modal) modal.classList.add('hidden');
-    };
+        function logoutAdmin() {
+            sessionStorage.removeItem('isAdminLoggedIn');
+            switchView('survey');
+        }
 
-    window.saveGScriptConfig = function() {
-      const el = document.getElementById('gscriptUrl');
-      const url = el ? el.value.trim() : '';
-      localStorage.setItem('gscript_webhook_url', url);
-      showModal('Berhasil Disimpan', 'URL Google Apps Script berhasil disimpan. Data survei selanjutnya akan dikirim ke Google Drive Anda.', true);
-    };
+        async function submitSurvey(e) {
+            e.preventDefault();
 
-    // Helper: timeout wrapper
-    const withTimeout = (p, ms) => {
-      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
-      return Promise.race([p, timeout]);
-    };
+            const p1 = parseInt(document.querySelector('input[name="p1"]:checked').value);
+            const p2 = parseInt(document.querySelector('input[name="p2"]:checked').value);
+            const p3 = parseInt(document.querySelector('input[name="p3"]:checked').value);
+            const p4 = parseInt(document.querySelector('input[name="p4"]:checked').value);
+            const p5 = parseInt(document.querySelector('input[name="p5"]:checked').value);
+            const avg = ((p1 + p2 + p3 + p4 + p5) / 5).toFixed(2);
 
-    // Load dashboard data (from Firestore if enabled, otherwise from localFallbackData)
-    window.loadDashboardData = async function() {
-      try {
-        let rows = [];
-        if (isFirebaseConnected && db) {
-          try {
-            const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan');
-            const qSnap = await getDocs(collRef);
-            rows = qSnap.docs.map(d => {
-              const data = d.data();
-              data._id = d.id;
-              return data;
+            const formData = {
+                id: 'RESP_' + Date.now(),
+                timestamp: new Date().toISOString(),
+                nama: document.getElementById('nama').value,
+                telepon: document.getElementById('telepon').value,
+                jenisLayanan: document.getElementById('jenisLayanan').value,
+                pendidikan: document.getElementById('pendidikan').value,
+                kedudukan: document.getElementById('kedudukan').value,
+                namaFaskes: document.getElementById('namaFaskes').value,
+                scores: [p1, p2, p3, p4, p5],
+                averageScore: parseFloat(avg),
+                saran: document.getElementById('saran').value || '-'
+            };
+
+            localResponses.unshift(formData);
+            localStorage.setItem('skm_responses', JSON.stringify(localResponses));
+
+            if (db) {
+                try {
+                    await db.collection('survei_kepuasan').add(formData);
+                } catch (err) {
+                    console.log("Firestore sync warning:", err);
+                }
+            }
+
+            document.getElementById('surveyForm').reset();
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        async function loadAdminData() {
+            let allData = [...localResponses];
+
+            if (db) {
+                try {
+                    const snapshot = await db.collection('survei_kepuasan').orderBy('timestamp', 'desc').get();
+                    if (!snapshot.empty) {
+                        allData = [];
+                        snapshot.forEach(doc => {
+                            allData.push({ firestoreId: doc.id, ...doc.data() });
+                        });
+                    }
+                } catch (err) {
+                    console.log("Using local backup data.");
+                }
+            }
+
+            const tbody = document.getElementById('responseTableBody');
+            tbody.innerHTML = '';
+
+            let totalScoreSum = 0;
+
+            if (allData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500">Belum ada data survei masuk.</td></tr>`;
+                document.getElementById('statTotal').innerText = '0';
+                document.getElementById('statScore').innerText = '0.00 / 9.00';
+                return;
+            }
+
+            allData.forEach((item, index) => {
+                totalScoreSum += item.averageScore || 0;
+                const dateStr = new Date(item.timestamp).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-600">${dateStr}</td>
+                    <td class="p-3 font-semibold text-slate-800">${item.nama}<br><span class="text-xs font-normal text-slate-500">${item.namaFaskes} (${item.telepon})</span></td>
+                    <td class="p-3"><span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-xs font-medium">${item.jenisLayanan}</span></td>
+                    <td class="p-3 text-slate-600">${item.pendidikan}<br><span class="text-xs text-slate-500">${item.kedudukan}</span></td>
+                    <td class="p-3 text-center font-bold text-teal-700">${item.averageScore}</td>
+                    <td class="p-3 text-slate-600 italic">"${item.saran}"</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteResponse('${item.id || item.firestoreId}', ${index})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1.5 rounded text-xs font-medium transition" title="Hapus Responden">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
             });
-          } catch (err) {
-            console.warn('Failed to get docs from Firestore, using local fallback:', err);
-          }
+
+            document.getElementById('statTotal').innerText = allData.length;
+            document.getElementById('statScore').innerText = (totalScoreSum / allData.length).toFixed(2) + ' / 9.00';
         }
 
-        if (!rows || rows.length === 0) rows = localFallbackData.slice();
+        async function deleteResponse(id, localIndex) {
+            if (confirm("Apakah Anda yakin ingin menghapus data responden ini?")) {
+                localResponses.splice(localIndex, 1);
+                localStorage.setItem('skm_responses', JSON.stringify(localResponses));
 
-        rows.sort((a, b) => {
-          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return tb - ta;
-        });
+                if (db) {
+                    try {
+                        const snapshot = await db.collection('survei_kepuasan').where('id', '==', id).get();
+                        snapshot.forEach(doc => {
+                            doc.ref.delete();
+                        });
+                    } catch (e) {
+                        console.log("Delete error:", e);
+                    }
+                }
 
-        cachedSurveyData = rows;
-
-        const total = rows.length;
-        const avg = total === 0 ? 0 : Number((rows.reduce((s, r) => s + (Number(r.avgScore) || 0), 0) / total).toFixed(1));
-
-        let category = '-';
-        if (total === 0) category = '-';
-        else if (avg >= 4.5) category = 'Sangat Puas';
-        else if (avg >= 3.5) category = 'Puas';
-        else if (avg >= 2.5) category = 'Cukup';
-        else if (avg >= 1.5) category = 'Kurang';
-        else category = 'Tidak Puas';
-
-        const statTotal = document.getElementById('stat-total');
-        const statAvg = document.getElementById('stat-avg');
-        const statCategory = document.getElementById('stat-category');
-        if (statTotal) statTotal.textContent = total;
-        if (statAvg) statAvg.textContent = `${avg} / 5.0`;
-        if (statCategory) statCategory.textContent = category;
-
-        const tbody = document.getElementById('responses-table-body');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-
-        if (!rows || rows.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada data survei.</td></tr>`;
-          return;
+                loadAdminData();
+            }
         }
 
-        rows.forEach((item) => {
-          const id = item._id || item.id || '';
-          const time = item.createdAt ? new Date(item.createdAt).toLocaleString('id-ID') : '-';
-          const name = escapeHtml(item.respondentName || '-');
-          const service = escapeHtml(item.serviceType || '-');
-          const score = item.avgScore !== undefined ? escapeHtml(String(item.avgScore)) : '-';
-          const feedback = escapeHtml(item.feedbackComment || '-');
-
-          const row = document.createElement('tr');
-          row.className = 'hover:bg-slate-50';
-
-          row.innerHTML = `
-            <td class="p-3 align-top">${time}</td>
-            <td class="p-3 align-top">${name}</td>
-            <td class="p-3 align-top">${service}</td>
-            <td class="p-3 text-center align-top font-semibold">${score}</td>
-            <td class="p-3 align-top">${feedback}</td>
-            <td class="p-3 text-center align-top">
-              <button data-id="${escapeHtml(id)}" data-name="${escapeHtml(item.respondentName || '')}" class="px-2 py-1 text-xs bg-rose-50 text-rose-700 rounded-md btn-delete">Hapus</button>
-            </td>
-          `;
-          tbody.appendChild(row);
-        });
-
-        // attach delete handlers
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const id = btn.getAttribute('data-id');
-            const name = btn.getAttribute('data-name');
-            window.deleteResponse(id, name);
-          });
-        });
-
-      } catch (err) {
-        console.error('Error loading dashboard data:', err);
-        showModal('Gagal Memuat Data', 'Terjadi kesalahan saat memuat data dashboard. Lihat konsol untuk detail.', false);
-      }
-    };
-
-    window.logoutAdmin = function() {
-      sessionStorage.removeItem('is_admin_logged_in');
-      switchView('form');
-    };
-
-    // Submit survey handler
-    window.submitSurvey = async function(event) {
-      if (event && event.preventDefault) event.preventDefault();
-
-      const respondentNameEl = document.getElementById('respondentName');
-      const surveyPeriodEl = document.getElementById('surveyPeriod');
-      const respondentGenderEl = document.getElementById('respondentGender');
-      const respondentAgeEl = document.getElementById('respondentAge');
-      const respondentEducationEl = document.getElementById('respondentEducation');
-      const respondentPositionEl = document.getElementById('respondentPosition');
-      const serviceTypeEl = document.getElementById('serviceType');
-      const accessMethodEl = document.getElementById('accessMethod');
-      const respondentContactEl = document.getElementById('respondentContact');
-
-      const respondentName = respondentNameEl ? respondentNameEl.value.trim() : '';
-      const surveyPeriod = surveyPeriodEl ? surveyPeriodEl.value.trim() : '';
-      const respondentGender = respondentGenderEl ? respondentGenderEl.value : '';
-      const respondentAge = respondentAgeEl ? respondentAgeEl.value : '';
-      const respondentEducation = respondentEducationEl ? respondentEducationEl.value : '';
-      const respondentPosition = respondentPositionEl ? respondentPositionEl.value : '';
-      const serviceType = serviceTypeEl ? serviceTypeEl.value : '';
-      const accessMethod = accessMethodEl ? accessMethodEl.value : '';
-      const respondentContact = respondentContactEl ? respondentContactEl.value.trim() : '';
-
-      const q = (n) => parseInt(document.querySelector('input[name="q' + n + '"]:checked')?.value || 0, 10);
-      const q1 = q(1), q2 = q(2), q3 = q(3), q4 = q(4), q5 = q(5), q6 = q(6), q7 = q(7), q8 = q(8), q9 = q(9);
-      const feedbackComment = (document.getElementById('feedbackComment') || {}).value || '';
-
-      const sum = q1 + q2 + q3 + q4 + q5 + q6 + q7 + q8 + q9;
-      const avgScore = Number((sum / 9).toFixed(1));
-
-      const surveyPayload = {
-        respondentName,
-        surveyPeriod,
-        respondentGender,
-        respondentAge,
-        respondentEducation,
-        respondentPosition,
-        serviceType,
-        accessMethod,
-        respondentContact,
-        scores: { q1, q2, q3, q4, q5, q6, q7, q8, q9 },
-        avgScore,
-        feedbackComment,
-        createdAt: new Date().toISOString()
-      };
-
-      const submitBtn = document.getElementById('submit-btn');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
-      }
-
-      try {
-        if (isFirebaseConnected && db) {
-          try {
-            const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan');
-            const savePromise = addDoc(collectionPath, surveyPayload);
-            await withTimeout(savePromise, 8000);
-          } catch (errSave) {
-            console.warn('Simpan ke Firebase gagal/timeout:', errSave);
-            surveyPayload.id = String(Date.now());
-            localFallbackData.unshift(surveyPayload);
-          }
-        } else {
-          surveyPayload.id = String(Date.now());
-          localFallbackData.unshift(surveyPayload);
+        function downloadExcel() {
+            if (localResponses.length === 0) {
+                alert("Tidak ada data untuk di-export.");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(localResponses.map(r => ({
+                Waktu: r.timestamp,
+                Nama: r.nama,
+                Telepon: r.telepon,
+                Layanan: r.jenisLayanan,
+                Pendidikan: r.pendidikan,
+                Kedudukan: r.kedudukan,
+                Faskes: r.namaFaskes,
+                NilaiRataRata: r.averageScore,
+                Saran: r.saran
+            })));
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Survei Kepuasan");
+            XLSX.writeFile(workbook, "Rekap_Survei_Kepuasan_Yankes.xlsx");
         }
 
-        // send to Google Apps Script if configured (non-blocking)
-        const gscriptUrl = localStorage.getItem('gscript_webhook_url');
-        if (gscriptUrl) {
-          try {
-            const fetchPromise = fetch(gscriptUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(surveyPayload)
+        function downloadPDF() {
+            if (localResponses.length === 0) {
+                alert("Tidak ada data untuk di-export.");
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+
+            doc.setFontSize(14);
+            doc.text("Rekapitulasi Survei Kepuasan Pelayanan Perizinan Kesehatan", 14, 15);
+            doc.setFontSize(10);
+            doc.text("Bidang Pelayanan Kesehatan - Dinas Kesehatan Kabupaten Badung", 14, 22);
+
+            const tableData = localResponses.map(r => [
+                r.timestamp.substring(0, 10),
+                r.nama,
+                r.jenisLayanan,
+                r.namaFaskes,
+                r.pendidikan + " / " + r.kedudukan,
+                r.averageScore,
+                r.saran
+            ]);
+
+            doc.autoTable({
+                startY: 28,
+                head: [['Waktu', 'Nama Responden', 'Layanan', 'Faskes', 'Pendidikan/Kedudukan', 'Skor', 'Saran']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [13, 148, 136] },
+                styles: { fontSize: 8 }
             });
-            await withTimeout(fetchPromise, 6000).catch(() => {});
-          } catch (e) {
-            console.warn('Google Drive WebApp warning/timeout:', e);
-          }
+
+            doc.save("Rekap_Survei_Kepuasan_Yankes.pdf");
         }
-
-        showModal('Terima Kasih!', 'Survei kepuasan Anda berhasil dikirim. Terima kasih atas partisipasinya.', true);
-        const form = document.getElementById('survey-form');
-        if (form) form.reset();
-
-      } catch (err) {
-        console.error('Error saving survey (unexpected):', err);
-        showModal('Gagal Mengirim', 'Terjadi kendala saat menyimpan survei. Silakan coba beberapa saat lagi.', false);
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Survei Kepuasan';
-        }
-      }
-    };
-
-    window.deleteResponse = async function(docId, respondentName) {
-      const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus data survei dari "${respondentName}"?`);
-      if (!confirmDelete) return;
-
-      try {
-        if (isFirebaseConnected && db && docId) {
-          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan', docId));
-        } else {
-          localFallbackData = localFallbackData.filter(item => item.id !== docId && item.respondentName !== respondentName);
-        }
-        showModal('Berhasil Dihapus', `Data survei dari ${respondentName} telah dihapus dari sistem.`, true);
-        loadDashboardData();
-      } catch (err) {
-        console.error('Error deleting document:', err);
-        showModal('Gagal Menghapus', 'Terjadi kesalahan saat menghapus data. Silakan coba kembali.', false);
-      }
-    };
-
-    window.downloadExcel = function() {
-      if (!cachedSurveyData || cachedSurveyData.length === 0) {
-        showModal('Data Kosong', 'Tidak ada data responden untuk diunduh.', false);
-        return;
-      }
-
-      const exportData = cachedSurveyData.map((item, index) => ({
-        No: index + 1,
-        Waktu: item.createdAt ? new Date(item.createdAt).toLocaleString('id-ID') : '-',
-        'Nama Pemohon / Instansi': item.respondentName,
-        'Periode': item.surveyPeriod || '-',
-        'Jenis Layanan': item.serviceType,
-        'Cara Akses': item.accessMethod || '-',
-        'Jenis Kelamin': item.respondentGender || '-',
-        'Usia': item.respondentAge || '-',
-        'Pendidikan Terakhir': item.respondentEducation || '-',
-        'Kedudukan / Jabatan': item.respondentPosition || '-',
-        'Kontak / WhatsApp': item.respondentContact || '-',
-        'Skor Q1 (Persyaratan Pelayanan)': item.scores?.q1 || '-',
-        'Skor Q2 (Sistem Mekanisme dan Prosedur)': item.scores?.q2 || '-',
-        'Skor Q3 (Waktu Penyelesaian)': item.scores?.q3 || '-',
-        'Skor Q4 (Biaya/Tarif)': item.scores?.q4 || '-',
-        'Skor Q5 (Prosedur Atau Hasil Layanan)': item.scores?.q5 || '-',
-        'Skor Q6 (Produk Atau Hasil Layanan)': item.scores?.q6 || '-',
-        'Skor Q7 (Kompetensi Pelaksanaan)': item.scores?.q7 || '-',
-        'Skor Q8 (Perilaku Pelaksanaan)': item.scores?.q8 || '-',
-        'Skor Q9 (Penanganan Pengaduan Sarana dan Masukan)': item.scores?.q9 || '-',
-        'Rata-Rata Skor': item.avgScore,
-        'Kritik & Saran': item.feedbackComment || '-'
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Survei Kesehatan");
-      XLSX.writeFile(workbook, "Rekap_Survei_Perizinan_Kesehatan.xlsx");
-    };
-
-    window.downloadPDF = function() {
-      if (!cachedSurveyData || cachedSurveyData.length === 0) {
-        showModal('Data Kosong', 'Tidak ada data responden untuk diunduh.', false);
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('landscape');
-
-      doc.setFontSize(16);
-      doc.setTextColor(30, 41, 59);
-      doc.text('Laporan Rekapitulasi Survei Kepuasan Perizinan Kesehatan', 14, 15);
-
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
-      doc.text('Dicetak pada: ' + new Date().toLocaleString('id-ID'), 14, 22);
-
-      const tableHeaders = [["No", "Waktu", "Pemohon / Instansi", "Periode", "Layanan", "Cara Akses", "Jenis Kelamin", "Usia", "Pendidikan", "Jabatan", "Kontak", "Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Rata-Rata","Kritik & Saran"]];
-      const tableRows = cachedSurveyData.map((item, index) => [
-        index + 1,
-        item.createdAt ? new Date(item.createdAt).toLocaleDateString('id-ID') : '-',
-        item.respondentName || '-',
-        item.surveyPeriod || '-',
-        item.serviceType || '-',
-        item.accessMethod || '-',
-        item.respondentGender || '-',
-        item.respondentAge || '-',
-        item.respondentEducation || '-',
-        item.respondentPosition || '-',
-        item.respondentContact || '-',
-        item.scores?.q1 || '-',
-        item.scores?.q2 || '-',
-        item.scores?.q3 || '-',
-        item.scores?.q4 || '-',
-        item.scores?.q5 || '-',
-        item.scores?.q6 || '-',
-        item.scores?.q7 || '-',
-        item.scores?.q8 || '-',
-        item.scores?.q9 || '-',
-        item.avgScore || '-',
-        item.feedbackComment || '-'
-      ]);
-
-      // autotable requires autoTable plugin
-      if (doc.autoTable) {
-        doc.autoTable({ head: tableHeaders, body: tableRows, startY: 28, styles: { fontSize: 8 } });
-      } else {
-        // fallback: simple text (not ideal but prevents errors)
-        doc.text('Tabel tidak tersedia karena plugin autotable tidak terdeteksi.', 14, 30);
-      }
-
-      doc.save('Rekap_Survei_Perizinan_Kesehatan.pdf');
-    };
-
-    // Basic admin login handler (non-secure): set session flag and show admin view
-    window.handleAdminLogin = function(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      const username = (document.getElementById('adminUsername') || {}).value || '';
-      const password = (document.getElementById('adminPassword') || {}).value || '';
-      // Accept any non-empty credentials to allow access, or replace with real check
-      if (username.trim() && password.trim()) {
-        sessionStorage.setItem('is_admin_logged_in', '1');
-        switchView('admin');
-        // load data when entering admin
-        setTimeout(() => loadDashboardData(), 200);
-      } else {
-        showModal('Gagal Login', 'Masukkan username dan password yang valid.', false);
-      }
-    };
-
-    // On load: restore saved Google script URL into settings input if present
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedUrl = localStorage.getItem('gscript_webhook_url');
-      if (savedUrl) {
-        const input = document.getElementById('gscriptUrl');
-        if (input) input.value = savedUrl;
-      }
-    });
-
     </script>
 </body>
 </html>
