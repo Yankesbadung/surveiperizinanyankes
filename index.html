@@ -582,117 +582,162 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'health-licensing-survey-app';
         let firebaseConfig = {};
         try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                apiKey: "AIzaSyMockKeyForHostingDemoPurposeOnly",
-                authDomain: "mock-project.firebaseapp.com",
-                projectId: "mock-project",
-                storageBucket: "mock-project.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456:web:abcd"
-            };
-        } catch (e) {
-            firebaseConfig = {};
-        }
+            // ---------- Replace the firebaseConfig initialization with this: ----------
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'health-licensing-survey-app';
 
-        let app, db, auth;
-        let isFirebaseConnected = false;
-        let localFallbackData = [];
-        let cachedSurveyData = [];
+// Only use firebase config when explicitly provided by embedding environment.
+// This avoids trying to authenticate with a fake/mock API key on public hosting.
+let firebaseConfig = {};
+if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+  try {
+    firebaseConfig = JSON.parse(__firebase_config);
+  } catch (e) {
+    console.warn("Invalid __firebase_config JSON:", e);
+    firebaseConfig = {};
+  }
+} else {
+  // Not provided — do not initialize Firebase. Keeps client offline-safe.
+  firebaseConfig = {};
+}
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedUrl = localStorage.getItem('gscript_webhook_url');
-            if (savedUrl) {
-                document.getElementById('gscriptUrl').value = savedUrl;
-            }
-        });
+let app, db, auth;
+let isFirebaseConnected = false;
+let localFallbackData = [];
+let cachedSurveyData = [];
 
-        window.saveGScriptConfig = function() {
-            const url = document.getElementById('gscriptUrl').value.trim();
-            localStorage.setItem('gscript_webhook_url', url);
-            showModal("Berhasil Disimpan", "URL Google Apps Script berhasil disimpan. Data survei selanjutnya akan dikirim ke Google Drive Anda.", true);
-        };
+window.addEventListener('DOMContentLoaded', () => {
+  const savedUrl = localStorage.getItem('gscript_webhook_url');
+  if (savedUrl) {
+    document.getElementById('gscriptUrl').value = savedUrl;
+  }
+});
 
-        try {
-            if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.projectId) {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                isFirebaseConnected = true;
-            }
-        } catch (err) {
-            console.warn("Firebase initialization warning:", err);
-        }
+window.saveGScriptConfig = function() {
+  const url = document.getElementById('gscriptUrl').value.trim();
+  localStorage.setItem('gscript_webhook_url', url);
+  showModal("Berhasil Disimpan", "URL Google Apps Script berhasil disimpan. Data survei selanjutnya akan dikirim ke Google Drive Anda.", true);
+};
 
-        async function initAuth() {
-            if (!isFirebaseConnected || !auth) return;
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (err) {
-                console.error("Auth error:", err);
-            }
-        }
-        initAuth();
+try {
+  // initialize firebase only when config contains projectId & apiKey (or at least projectId)
+  if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.projectId && firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    isFirebaseConnected = true;
+  } else {
+    // keep firestore disabled
+    isFirebaseConnected = false;
+  }
+} catch (err) {
+  console.warn("Firebase initialization warning:", err);
+  isFirebaseConnected = false;
+}
+
+async function initAuth() {
+  if (!isFirebaseConnected || !auth) return;
+  try {
+    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+      await signInWithCustomToken(auth, __initial_auth_token);
+    } else {
+      await signInAnonymously(auth);
+    }
+  } catch (err) {
+    console.error("Auth error:", err);
+  }
+}
+initAuth();
+// -----------------------------------------------------------------------
 
         // UI View Switcher
-        window.switchView = function(viewName) {
-            const formView = document.getElementById('view-form');
-            const loginView = document.getElementById('view-login');
-            const adminView = document.getElementById('view-admin');
-            const settingsView = document.getElementById('view-settings');
-            
-            const formBtn = document.getElementById('nav-form-btn');
-            const loginBtn = document.getElementById('nav-login-btn');
-            const settingsBtn = document.getElementById('nav-settings-btn');
+        // ---------- Add this function to provide the missing loadDashboardData ----------
+window.loadDashboardData = async function() {
+  // Load data from Firestore (if enabled) or from localFallbackData
+  try {
+    let rows = [];
+    if (isFirebaseConnected && db) {
+      try {
+        const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan');
+        const qSnap = await getDocs(collRef);
+        rows = qSnap.docs.map(d => {
+          const data = d.data();
+          data._id = d.id;
+          return data;
+        });
+      } catch (err) {
+        console.warn("Failed to get docs from Firestore, using local fallback:", err);
+      }
+    }
 
-            formView.classList.add('hidden');
-            loginView.classList.add('hidden');
-            adminView.classList.add('hidden');
-            settingsView.classList.add('hidden');
+    // if no rows from Firestore, fallback to local array
+    if (!rows || rows.length === 0) {
+      rows = localFallbackData.slice(); // clone
+    }
 
-            formBtn.className = "px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-2";
-            loginBtn.className = "px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-2";
-            settingsBtn.className = "px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-1.5";
+    // Sort by createdAt desc (if available)
+    rows.sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
 
-            if (viewName === 'form') {
-                formView.classList.remove('hidden');
-                formBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-            } else if (viewName === 'login') {
-                if (sessionStorage.getItem('is_admin_logged_in') === 'true') {
-                    adminView.classList.remove('hidden');
-                    loginBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-                    loadDashboardData();
-                } else {
-                    loginView.classList.remove('hidden');
-                    loginBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-                }
-            } else if (viewName === 'admin') {
-                adminView.classList.remove('hidden');
-                loginBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-                loadDashboardData();
-            } else if (viewName === 'settings') {
-                settingsView.classList.remove('hidden');
-                settingsBtn.className = "px-3 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-1.5";
-            }
-        };
+    cachedSurveyData = rows;
 
-        window.handleAdminLogin = function(event) {
-            event.preventDefault();
-            const user = document.getElementById('adminUsername').value.trim();
-            const pass = document.getElementById('adminPassword').value;
-            
-            if (user === 'yankesbadung' && pass === 'Pelayanankesehatan1') {
-                sessionStorage.setItem('is_admin_logged_in', 'true');
-                document.getElementById('adminUsername').value = '';
-                document.getElementById('adminPassword').value = '';
-                switchView('admin');
-            } else {
-                showModal("Login Gagal", "Username atau kata sandi admin salah. Silakan coba kembali.", false);
-            }
-        };
+    // compute stats
+    const total = rows.length;
+    const avg = total === 0 ? 0 : Number((rows.reduce((s, r) => s + (Number(r.avgScore) || 0), 0) / total).toFixed(1));
+
+    // Category thresholds (adjust as you like)
+    let category = '-';
+    if (total === 0) category = '-';
+    else if (avg >= 4.5) category = 'Sangat Puas';
+    else if (avg >= 3.5) category = 'Puas';
+    else if (avg >= 2.5) category = 'Cukup';
+    else if (avg >= 1.5) category = 'Kurang';
+    else category = 'Tidak Puas';
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-avg').textContent = `${avg} / 5.0`;
+    document.getElementById('stat-category').textContent = category;
+
+    // render table
+    const tbody = document.getElementById('responses-table-body');
+    tbody.innerHTML = '';
+
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada data survei.</td></tr>`;
+      return;
+    }
+
+    rows.forEach((item) => {
+      const id = item._id || item.id || '';
+      const time = item.createdAt ? new Date(item.createdAt).toLocaleString('id-ID') : '-';
+      const name = escapeHtml(item.respondentName || '-');
+      const service = escapeHtml(item.serviceType || '-');
+      const score = item.avgScore !== undefined ? escapeHtml(String(item.avgScore)) : '-';
+      const feedback = escapeHtml(item.feedbackComment || '-');
+
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-slate-50';
+
+      row.innerHTML = `
+        <td class="p-3 align-top">${time}</td>
+        <td class="p-3 align-top">${name}</td>
+        <td class="p-3 align-top">${service}</td>
+        <td class="p-3 text-center align-top font-semibold">${score}</td>
+        <td class="p-3 align-top">${feedback}</td>
+        <td class="p-3 text-center align-top">
+          <button onclick="deleteResponse('${id}', '${escapeHtml(item.respondentName || '')}')" class="px-2 py-1 text-xs bg-rose-50 text-rose-700 rounded-md">Hapus</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch (err) {
+    console.error("Error loading dashboard data:", err);
+    showModal("Gagal Memuat Data", "Terjadi kesalahan saat memuat data dashboard. Lihat konsol untuk detail.", false);
+  }
+};
+// -----------------------------------------------------------------------
 
         window.logoutAdmin = function() {
             sessionStorage.removeItem('is_admin_logged_in');
