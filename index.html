@@ -176,9 +176,9 @@
                         <h2 class="text-xl font-bold text-slate-900">Dashboard Laporan Admin SKM</h2>
                         <p class="text-xs text-slate-500">Rekapitulasi hasil survei kepuasan masyarakat.</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="exportDataJSON()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-file-arrow-down"></i> Export JSON
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="exportDataExcel()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel"></i> Unduh ke Excel
                         </button>
                         <button onclick="clearData()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
                             <i class="fa-solid fa-trash"></i> Reset Data
@@ -269,11 +269,11 @@
             <div class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
-                    <input type="text" id="inputAdminUser" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="yankesbadung">
+                    <input type="text" id="inputAdminUser" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
-                    <input type="password" id="inputAdminPassword" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Pelayanankesehatan1">
+                    <input type="password" id="inputAdminPassword" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder
                 </div>
                 <p id="errorPassword" class="text-xs text-rose-500 hidden font-medium">Username atau Password salah! Coba lagi.</p>
             </div>
@@ -410,22 +410,29 @@
                 viewAdmin.classList.add('hidden');
                 btnSurvei.className = "px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-700 text-white shadow transition hover:bg-indigo-600 flex items-center gap-2";
                 btnAdmin.className = "px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-800 text-indigo-100 border border-indigo-600 hover:bg-indigo-700 transition flex items-center gap-2";
+                btnAdmin.innerHTML = '<i class="fa-solid fa-lock"></i> Login Admin';
             } else {
                 viewSurvei.classList.add('hidden');
                 viewAdmin.classList.remove('hidden');
                 loadAdminData();
                 btnAdmin.className = "px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-700 text-white shadow transition hover:bg-indigo-600 flex items-center gap-2";
                 btnSurvei.className = "px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-800 text-indigo-100 border border-indigo-600 hover:bg-indigo-700 transition flex items-center gap-2";
+                btnAdmin.innerHTML = '<i class="fa-solid fa-gauge-high"></i> Dashboard Admin';
             }
         }
 
-        // Admin Modal Control
+        // Buka & Tutup Modal Login Admin
         function openAdminModal() {
-            document.getElementById('modalAdminLogin').classList.remove('hidden');
-            document.getElementById('modalAdminLogin').classList.add('flex');
+            // Jika sudah di tab admin, abaikan atau langsung tampilkan
+            const viewAdmin = document.getElementById('viewAdmin');
+            if (!viewAdmin.classList.contains('hidden')) {
+                return;
+            }
             document.getElementById('inputAdminUser').value = '';
             document.getElementById('inputAdminPassword').value = '';
             document.getElementById('errorPassword').classList.add('hidden');
+            document.getElementById('modalAdminLogin').classList.remove('hidden');
+            document.getElementById('modalAdminLogin').classList.add('flex');
         }
 
         function closeAdminModal() {
@@ -433,10 +440,11 @@
             document.getElementById('modalAdminLogin').classList.add('hidden');
         }
 
+        // Verifikasi Kredensial Admin
         function verifyAdminCredentials() {
-            const user = document.getElementById('inputAdminUser').value;
-            const pass = document.getElementById('inputAdminPassword').value;
-            
+            const user = document.getElementById('inputAdminUser').value.trim();
+            const pass = document.getElementById('inputAdminPassword').value.trim();
+
             if (user === 'yankesbadung' && pass === 'Pelayanankesehatan1') {
                 closeAdminModal();
                 switchTab('admin');
@@ -500,16 +508,104 @@
             }
         }
 
-        // Export JSON
-        function exportDataJSON() {
+        // Export Excel (.xls)
+        function exportDataExcel() {
             const data = getStoredData();
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `laporan_skm_yankes_badung_${Date.now()}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            if (data.length === 0) {
+                showNotif('Perhatian', 'Belum ada data survei untuk diunduh.', 'error');
+                return;
+            }
+
+            let htmlContent = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head>
+                    <meta charset="utf-8">
+                    <title>Laporan SKM Yankes Badung</title>
+                    <style>
+                        table { border-collapse: collapse; width: 100%; font-family: sans-serif; font-size: 11pt; }
+                        th { background-color: #312e81; color: #ffffff; font-weight: bold; border: 1px solid #000000; padding: 8px; text-align: center; }
+                        td { border: 1px solid #cccccc; padding: 6px; vertical-align: middle; }
+                        .center { text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <h2>Laporan Hasil Survei Kepuasan Masyarakat (SKM) Perizinan Kesehatan Yankes Badung</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Waktu Pengisian</th>
+                                <th>Unit Pelayanan / Instansi</th>
+                                <th>Periode Survei</th>
+                                <th>Jenis Kelamin</th>
+                                <th>Usia</th>
+                                <th>Pendidikan</th>
+                                <th>Jabatan</th>
+                                <th>Jenis Layanan</th>
+                                <th>Cara Akses</th>
+                                <th>Kontak</th>
+                                <th>Q1 (Syarat)</th>
+                                <th>Q2 (Prosedur)</th>
+                                <th>Q3 (Waktu)</th>
+                                <th>Q4 (Biaya)</th>
+                                <th>Q5 (Produk)</th>
+                                <th>Q6 (Kompetensi)</th>
+                                <th>Q7 (Perilaku)</th>
+                                <th>Q8 (Pengaduan)</th>
+                                <th>Q9 (Sarpras)</th>
+                                <th>Rata-Rata Skor</th>
+                                <th>Catatan / Saran</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.forEach((item, index) => {
+                const js = item.jawabanSoal || {};
+                htmlContent += `
+                    <tr>
+                        <td class="center">${index + 1}</td>
+                        <td>${item.tanggal}</td>
+                        <td>${item.unitPelayanan}</td>
+                        <td>${item.periodeSurvei}</td>
+                        <td>${item.jenisKelamin}</td>
+                        <td>${item.usia}</td>
+                        <td>${item.pendidikan}</td>
+                        <td>${item.jabatan}</td>
+                        <td>${item.jenisLayanan}</td>
+                        <td>${item.caraAkses}</td>
+                        <td>${item.kontak}</td>
+                        <td class="center">${js.q_1 || '-'}</td>
+                        <td class="center">${js.q_2 || '-'}</td>
+                        <td class="center">${js.q_3 || '-'}</td>
+                        <td class="center">${js.q_4 || '-'}</td>
+                        <td class="center">${js.q_5 || '-'}</td>
+                        <td class="center">${js.q_6 || '-'}</td>
+                        <td class="center">${js.q_7 || '-'}</td>
+                        <td class="center">${js.q_8 || '-'}</td>
+                        <td class="center">${js.q_9 || '-'}</td>
+                        <td class="center"><b>${item.rataSkor}</b></td>
+                        <td>${item.catatan}</td>
+                    </tr>
+                `;
+            });
+
+            htmlContent += `
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Laporan_SKM_Yankes_Badung_${new Date().toISOString().slice(0,10)}.xls`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // Notifikasi Modal Custom
