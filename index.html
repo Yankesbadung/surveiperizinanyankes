@@ -1,970 +1,581 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Survei Kepuasan Pelayanan Perizinan Kesehatan</title>
+    <title>Survei Kepuasan Pelayanan Perizinan Kesehatan - Yankes Badung</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Inter & FontAwesome -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- jsPDF & SheetJS (xlsx) for PDF and Excel Export -->
+    <!-- SheetJS untuk Export Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF untuk Export PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/plugin/jspdf.plugin.autotable.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="h-full bg-slate-50 text-slate-800 flex flex-col justify-between">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <header class="bg-indigo-700 text-white shadow-md">
-        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm">
+    <!-- Header / Navbar -->
+    <header class="bg-teal-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3 text-center sm:text-left">
+                <div class="bg-white text-teal-700 p-2.5 rounded-xl shadow">
                     <i class="fa-solid fa-hospital-user text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold leading-tight">SKM Perizinan Kesehatan Yankes Badung</h1>
-                    <p class="text-xs text-indigo-200">Klinik • Rumah Sakit • Hatra • Laboratorium</p>
+                    <h1 class="text-lg font-bold leading-tight">Yankes Badung</h1>
+                    <p class="text-xs text-teal-100">Bidang Pelayanan Kesehatan - Dinas Kesehatan Kabupaten Badung</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <button id="nav-form-btn" onclick="switchView('form')" class="px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square"></i> Isi Survei
+                <button onclick="switchView('survey')" id="navSurveyBtn" class="bg-teal-800 hover:bg-teal-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border border-teal-600">
+                    <i class="fa-solid fa-pen-to-square mr-1.5"></i> Isi Survei
                 </button>
-                <button id="nav-login-btn" onclick="switchView('login')" class="px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-2">
-                    <i class="fa-solid fa-lock"></i> Login Admin
-                </button>
-                <button id="nav-settings-btn" onclick="switchView('settings')" class="px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-1.5" title="Konfigurasi Google Drive">
-                    <i class="fa-brands fa-google-drive"></i>
+                <button onclick="checkAdminAccess()" id="navAdminBtn" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border border-teal-500">
+                    <i class="fa-solid fa-lock mr-1.5"></i> Admin Login
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
+    <!-- Main Container -->
+    <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-grow">
 
-        <!-- Modal Dialog -->
-        <div id="modal-container" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-center transform transition-all">
-                <div id="modal-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl"></div>
-                <h3 id="modal-title" class="text-lg font-bold text-slate-900 mb-2"></h3>
-                <p id="modal-message" class="text-sm text-slate-600 mb-6"></p>
-                <button onclick="closeModal()" class="w-full py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition">Tutup</button>
+        <!-- ================= SECTION: FORMULIR SURVEI ================= -->
+        <section id="surveySection" class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden p-6 sm:p-10 transition-all duration-300">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Survei Kepuasan Masyarakat (SKM)</h2>
+                <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                    Formulir ini bertujuan untuk mengukur tingkat kepuasan pemohon terhadap standar pelayanan perizinan bidang kesehatan di Kabupaten Badung guna meningkatkan kualitas pelayanan publik secara berkelanjutan.
+                </p>
             </div>
-        </div>
 
-        <!-- View: Form Survei -->
-        <div id="view-form" class="space-y-6">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-                <div class="border-b border-slate-100 pb-5 mb-6">
-                    <h2 class="text-xl font-bold text-slate-900">Formulir Survei Kepuasan Masyarakat</h2>
-                    <div class="text-sm text-slate-600 mt-3 space-y-2.5 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <p><strong>Yth. Bapak/Ibu Pengguna Layanan Perizinan Kesehatan,</strong></p>
-                        <p>Dalam rangka meningkatkan kualitas pelayanan perizinan klinik, kami memohon kesediaan Bapak/Ibu untuk memberikan penilaian terhadap pelayanan yang telah diterima. (Klinik, Rumah Sakit, Hatra, dan Laboratorium), Survei ini tidak memengaruhi proses maupun hasil perizinan klinik. Identitas dan jawaban responden akan dijaga kerahasiaannya serta hanya digunakan sebagai bahan evaluasi dan peningkatan kualitas pelayanan.</p>
-                        <p class="text-xs text-slate-500 italic">Berikan tanda centang pada jawaban yang paling sesuai dengan pengalaman Bapak/Ibu.</p>
-                        <div class="pt-3 border-t border-slate-200/60">
-                            <p class="font-semibold text-xs uppercase tracking-wider text-slate-700 mb-1.5">Skala Penilaian:</p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-slate-600">
-                                <div>• 1 = Tidak Baik</div>
-                                <div>• 2 = Kurang Baik</div>
-                                <div>• 3 = Cukup</div>
-                                <div>• 4 = baik</div>
-                                <div>• 5 = Sangat Baik</div>
-                            </div>
+            <!-- CARA MENGAKSES PELAYANAN -->
+            <div class="mb-8 bg-teal-50 border border-teal-200 rounded-xl p-5 shadow-sm">
+                <h3 class="text-base font-bold text-teal-900 mb-3 flex items-center">
+                    <i class="fa-solid fa-circle-info text-teal-600 mr-2"></i> Cara Mengakses Pelayanan Perizinan Kesehatan
+                </h3>
+                <ol class="list-decimal list-inside text-sm text-teal-800 space-y-2 leading-relaxed">
+                    <li><strong class="font-semibold">Pengajuan Permohonan:</strong> Pemohon menyiapkan berkas persyaratan perizinan lengkap sesuai jenis layanan melalui sistem perizinan online daerah/OSS.</li>
+                    <li><strong class="font-semibold">Verifikasi Berkas:</strong> Tim Bidang Pelayanan Kesehatan Dinas Kesehatan Kabupaten Badung melakukan verifikasi administratif dan teknis.</li>
+                    <li><strong class="font-semibold">Peninjauan Lapangan (Jika Diperlukan):</strong> Dilakukan peninjauan lokasi fasilitas kesehatan oleh tim teknis.</li>
+                    <li><strong class="font-semibold">Penerbitan Izin:</strong> Surat Keputusan / Dokumen Izin diterbitkan dan diserahkan kepada pemohon.</li>
+                </ol>
+            </div>
+
+            <form id="surveyForm" onsubmit="submitSurvey(event)" class="space-y-6">
+                <!-- Data Responden -->
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
+                    <h3 class="text-base font-bold text-slate-800 flex items-center border-b pb-2">
+                        <i class="fa-solid fa-user-gear text-teal-600 mr-2"></i> Identitas Responden & Layanan
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Responden <span class="text-red-500">*</span></label>
+                            <input type="text" id="nama" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nomor WhatsApp / Kontak <span class="text-red-500">*</span></label>
+                            <input type="tel" id="telepon" required placeholder="08xxxxxxxxxx" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Jenis Layanan Perizinan <span class="text-red-500">*</span></label>
+                            <select id="jenisLayanan" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                <option value="" disabled selected>-- Pilih Jenis Layanan --</option>
+                                <option value="Klinik">Klinik</option>
+                                <option value="Rumah Sakit">Rumah Sakit</option>
+                                <option value="Hatra (Pengobat Tradisional)">Hatra (Pengobat Tradisional)</option>
+                                <option value="Laboratorium Kesehatan">Laboratorium Kesehatan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Pendidikan Responden <span class="text-red-500">*</span></label>
+                            <select id="pendidikan" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                <option value="" disabled selected>-- Pilih Pendidikan Terakhir --</option>
+                                <option value="SMA / Sederajat">SMA / Sederajat</option>
+                                <option value="Diploma (D3/D4)">Diploma (D3/D4)</option>
+                                <option value="Sarjana (S1)">Sarjana (S1)</option>
+                                <option value="Magister / Doktor (S2/S3)">Magister / Doktor (S2/S3)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kedudukan Responden <span class="text-red-500">*</span></label>
+                            <select id="kedudukan" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                <option value="" disabled selected>-- Pilih Kedudukan --</option>
+                                <option value="Pemilik / Owner">Pemilik / Owner</option>
+                                <option value="Direktur / Pimpinan Faskes">Direktur / Pimpinan Faskes</option>
+                                <option value="Penanggung Jawab Teknis">Penanggung Jawab Teknis</option>
+                                <option value="Pengelola / Staf Administrasi">Pengelola / Staf Administrasi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Fasilitas / Perusahaan <span class="text-red-500">*</span></label>
+                            <input type="text" id="namaFaskes" required placeholder="Contoh: Klinik Sehat Badung" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
                         </div>
                     </div>
                 </div>
 
-                <form id="survey-form" onsubmit="submitSurvey(event)" class="space-y-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">NAMA UNIT PELAYANAN / INSTANSI *</label>
-                            <input type="text" id="respondentName" required placeholder="Contoh: Klinik Satya Sehat" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">PERIODE SURVEI *</label>
-                            <input type="text" id="surveyPeriod" required placeholder="Contoh: Triwulan I 2026" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">JENIS KELAMIN RESPONDEN *</label>
-                            <select id="respondentGender" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                                <option value="" disabled selected>Pilih Jenis Kelamin</option>
-                                <option value="Laki-Laki">Laki-Laki</option>
-                                <option value="Perempuan">Perempuan</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">USIA RESPONDEN *</label>
-                            <select id="respondentAge" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                                <option value="" disabled selected>Pilih Rentang Usia</option>
-                                <option value="Kurang dari 25 tahun">Kurang dari 25 tahun</option>
-                                <option value="25–35 tahun">25–35 tahun</option>
-                                <option value="36–45 tahun">36–45 tahun</option>
-                                <option value="46–55 tahun">46–55 tahun</option>
-                                <option value="Lebih dari 55 tahun">Lebih dari 55 tahun</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">PENDIDIKAN TERAKHIR *</label>
-                            <select id="respondentEducation" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                                <option value="" disabled selected>Pilih Tingkat Pendidikan</option>
-                                <option value="SD / Sederajat">SD / Sederajat</option>
-                                <option value="SMP / Sederajat">SMP / Sederajat</option>
-                                <option value="SMA / SMK / Sederajat">SMA / SMK / Sederajat</option>
-                                <option value="Diploma (D1/D2/D3/D4)">Diploma (D1/D2/D3/D4)</option>
-                                <option value="S1 (Sarjana)">S1 (Sarjana)</option>
-                                <option value="S2 / S3 (Magister / Doktor)">S2 / S3 (Magister / Doktor)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">KEDUDUKAN / JABATAN DI INSTANSI *</label>
-                            <select id="respondentPosition" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                                <option value="" disabled selected>Pilih Kedudukan / Jabatan</option>
-                                <option value="Pemilik / Owner">Pemilik / Owner</option>
-                                <option value="Direktur / Pimpinan">Direktur / Pimpinan</option>
-                                <option value="Penanggung Jawab Faskes">Penanggung Jawab Faskes</option>
-                                <option value="Staff / Administrasi">Staff / Administrasi</option>
-                                <option value="Konsultan / Perwakilan">Konsultan / Perwakilan</option>
-                                <option value="Lainnya">Lainnya</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">JENIS LAYANAN PERIZINAN *</label>
-                            <select id="serviceType" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                                <option value="" disabled selected>Pilih Jenis Layanan Perizinan</option>
-                                <option value="Klinik">Klinik Pratama / Utama</option>
-                                <option value="Rumah Sakit">Rumah Sakit (Tipe A/B/C/D)</option>
-                                <option value="Hatra">Hatra (Pelayanan Kesehatan Tradisional)</option>
-                                <option value="Laboratorium">Laboratorium Kesehatan</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">CARA MENGAKSES PELAYANAN *</label>
-                            <select id="accessMethod" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                                <option value="" disabled selected>Pilih Cara Mengakses Pelayanan</option>
-                                <option value="Datang Langsung">Datang Langsung</option>
-                                <option value="Sistem Perizinan Daring">Sistem Perizinan Daring</option>
-                                <option value="Telepon / WhatsApp">Telepon / WhatsApp</option>
-                                <option value="Surat Elektronik / Aplikasi">Surat Elektronik / Aplikasi</option>
-                                <option value="Lainnya">Lainnya</option>
-                            </select>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">KONTAK / WHATSAPP (OPSIONAL)</label>
-                            <input type="text" id="respondentContact" placeholder="Contoh: 081234567890" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                        </div>
-                    </div>
-
-                    <hr class="border-slate-100 my-4">
+                <!-- Pertanyaan Survei (Skala 1 s.d. 9 Vertikal Kebawah) -->
+                <div class="space-y-6 pt-2">
+                    <h3 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center">
+                        <i class="fa-solid fa-list-check text-teal-600 mr-2"></i> Penilaian Unsur Pelayanan (Skala 1 - 9)
+                    </h3>
 
                     <!-- Pertanyaan 1 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">1. PERSYARATAN PELAYANAN</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kejelasan dan kemudahan persyaratan yang harus dipenuhi dalam pengurusan perizinan klinik?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q1" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q1" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q1" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q1" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q1" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik
-                            </label>
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">1. Bagaimana pemahaman Anda tentang kemudahan persyaratan perizinan kesehatan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Tidak Mudah</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p1" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Mudah</span></label>
                         </div>
                     </div>
 
                     <!-- Pertanyaan 2 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">2. SISTEM, MEKANISME DAN PROSEDUR</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kejelasan alur, tahapan, mekanisme, dan prosedur layanan perizinan klinik?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q2" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q2" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q2" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q2" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q2" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik
-                            </label>
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">2. Bagaimana kemudahan sistem atau alur prosedur pelayanan perizinan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Berbelit-belit</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p2" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Mudah</span></label>
                         </div>
                     </div>
 
                     <!-- Pertanyaan 3 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">3. WAKTU PENYELESAIAN</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kesesuaian waktu penyelesaian layanan dengan standar waktu yang telah ditetapkan?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q3" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q3" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q3" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q3" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q3" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik
-                            </label>
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">3. Bagaimana kecepatan waktu dalam proses penyelesaian perizinan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Lambat</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p3" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Cepat</span></label>
                         </div>
                     </div>
 
                     <!-- Pertanyaan 4 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">4. BIAYA/ TARIF</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kesesuaian hasil layanan yang diterima (rekomendasi, berita acara, atau dokumen izin)?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q4" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q4" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q4" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q4" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q4" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik / Gratis
-                            </label>
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">4. Bagaimana kewajaran biaya/tarif dalam pengurusan perizinan (jika ada retribusi resmi)?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Sangat Mahal</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p4" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Wajar / Sesuai Ketentuan</span></label>
                         </div>
                     </div>
 
                     <!-- Pertanyaan 5 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">5. PROSEDUR ATAU HASIL LAYANAN</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai keterbukaan, kepastian, dan kesesuaian biaya atau tarif dalam layanan perizinan klinik?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q5" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q5" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q5" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q5" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q5" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik
-                            </label>
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+                        <label class="block text-sm font-semibold text-slate-800">5. Bagaimana kompetensi, keramahan, dan kesopanan petugas pelayanan?</label>
+                        <div class="flex flex-col space-y-2 pl-2">
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="1" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>1 - Tidak Kompeten / Tidak Ramah</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="2" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>2</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="3" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>3</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="4" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>4</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="5" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>5 - Cukup</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="6" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>6</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="7" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>7</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="8" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>8</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer text-sm text-slate-700"><input type="radio" name="p5" value="9" required class="text-teal-600 focus:ring-teal-500 h-4 w-4"> <span>9 - Sangat Kompeten & Sangat Ramah</span></label>
                         </div>
                     </div>
-
-                    <!-- Pertanyaan 6 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">6. PRODUK ATAU HASIL LAYANAN</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kesesuaian hasil layanan yang diterima, seperti rekomendasi, berita acara visitasi, persetujuan, atau dokumen perizinan klinik?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q6" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q6" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q6" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q6" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q6" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Pertanyaan 7 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">7. KOPETENSI PELAKSANA</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kemampuan dan pengetahuan petugas dalam memberikan informasi serta memproses layanan perizinan klinik?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q7" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q7" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q7" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q7" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q7" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Pertanyaan 8 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">8. PRILAKU PELAKSANA</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kesopanan, keramahan, keadilan, ketelitian, dan sikap petugas selama memberikan pelayanan?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q8" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q8" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q8" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q8" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q8" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik / Gratis
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Pertanyaan 9 -->
-                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-900">9. PENANGANAN, PENGADUAN, SARAN DAN MASUKAN</label>
-                            <p class="text-xs text-slate-500">Bagaimana pendapat Anda mengenai kemudahan menyampaikan pengaduan atau masukan serta kecepatan petugas dalam menindaklanjutinya?</p>
-                        </div>
-                        <div class="flex flex-col gap-2 pt-1">
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q9" value="1" required class="text-indigo-600 focus:ring-indigo-500"> 1 - Tidak Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q9" value="2" class="text-indigo-600 focus:ring-indigo-500"> 2 - Kurang Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q9" value="3" class="text-indigo-600 focus:ring-indigo-500"> 3 - Cukup
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q9" value="4" class="text-indigo-600 focus:ring-indigo-500"> 4 - Baik
-                            </label>
-                            <label class="flex items-center gap-2.5 text-xs font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
-                                <input type="radio" name="q9" value="5" class="text-indigo-600 focus:ring-indigo-500"> 5 - Sangat Baik / Gratis
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Kritik & Saran -->
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Kritik, Saran & Masukan Perbaikan</label>
-                        <textarea id="feedbackComment" rows="3" placeholder="Tuliskan masukan Anda untuk peningkatan layanan perizinan kesehatan..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"></textarea>
-                    </div>
-
-                    <button type="submit" id="submit-btn" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-paper-plane"></i> Kirim Survei Kepuasan
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- View: Login Admin -->
-        <div id="view-login" class="space-y-6 hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 max-w-md mx-auto">
-                <div class="text-center border-b border-slate-100 pb-5 mb-6">
-                    <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-3 text-xl">
-                        <i class="fa-solid fa-lock"></i>
-                    </div>
-                    <h2 class="text-xl font-bold text-slate-900">Login Administrator</h2>
-                    <p class="text-sm text-slate-500 mt-1">Masukkan username dan kata sandi untuk mengakses dashboard rekapitulasi.</p>
                 </div>
 
-                <form onsubmit="handleAdminLogin(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Username Admin *</label>
-                        <input type="text" id="adminUsername" required placeholder="Masukkan username admin" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                    </div>
+                <!-- Saran & Masukan -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kritik, Saran, atau Masukan untuk Peningkatan Pelayanan</label>
+                    <textarea id="saran" rows="3" placeholder="Tuliskan saran atau masukan Anda di sini..." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white"></textarea>
+                </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Kata Sandi Admin *</label>
-                        <input type="password" id="adminPassword" required placeholder="Masukkan password admin" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                    </div>
-
-                    <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-right-to-bracket"></i> Masuk Dashboard
+                <!-- Tombol Submit -->
+                <div class="pt-4">
+                    <button type="submit" id="submitBtn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition shadow-md flex items-center justify-center space-x-2 text-base">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Kirim Survei Kepuasan</span>
                     </button>
-                </form>
-            </div>
-        </div>
+                </div>
+            </form>
+        </section>
 
-        <!-- View: Admin Dashboard -->
-        <div id="view-admin" class="space-y-6 hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-5 mb-6">
+        <!-- ================= SECTION: ADMIN LOGIN ================= -->
+        <section id="loginSection" class="hidden max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+            <div class="text-center mb-6">
+                <div class="bg-teal-100 text-teal-700 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fa-solid fa-user-shield text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Login Admin Yankes</h2>
+                <p class="text-xs text-slate-500 mt-1">Masukkan kredensial administrator untuk melihat data survei</p>
+            </div>
+
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Username</label>
+                    <input type="text" id="adminUser" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Masukkan username">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Password</label>
+                    <input type="password" id="adminPass" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Masukkan password">
+                </div>
+                <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2.5 rounded-lg transition shadow-sm text-sm">
+                    Masuk ke Dashboard
+                </button>
+            </form>
+        </section>
+
+        <!-- ================= SECTION: ADMIN DASHBOARD ================= -->
+        <section id="adminSection" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-5 mb-6">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">Dashboard Rekapitulasi Survei</h2>
-                        <p class="text-sm text-slate-500 mt-1">Analisis kepuasan masyarakat terhadap layanan perizinan kesehatan.</p>
+                        <h2 class="text-2xl font-extrabold text-slate-900">Dashboard Admin & Rekapitulasi</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Kelola data responden dan ekspor hasil survei</p>
                     </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <button onclick="downloadExcel()" class="px-3 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-file-excel"></i> Download Excel
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="downloadExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-file-excel"></i><span>Excel</span>
                         </button>
-                        <button onclick="downloadPDF()" class="px-3 py-2 text-xs font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-file-pdf"></i> Download PDF
+                        <button onclick="downloadPDF()" class="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-file-pdf"></i><span>PDF</span>
                         </button>
-                        <button onclick="loadDashboardData()" class="px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition flex items-center gap-1.5" title="Muat Ulang">
-                            <i class="fa-solid fa-rotate"></i>
-                        </button>
-                        <button onclick="logoutAdmin()" class="px-3.5 py-2 text-xs font-semibold bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
+                        <button onclick="logoutAdmin()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-right-from-bracket"></i><span>Keluar</span>
                         </button>
                     </div>
                 </div>
 
+                <!-- Statistik Ringkas -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                    <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
-                        <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Total Responden</span>
-                        <h3 id="stat-total" class="text-2xl font-bold text-indigo-900 mt-1">0</h3>
+                    <div class="bg-teal-50 border border-teal-100 p-4 rounded-xl">
+                        <p class="text-xs font-semibold text-teal-700 uppercase">Total Responden</p>
+                        <p id="statTotal" class="text-2xl font-extrabold text-teal-900 mt-1">0</p>
                     </div>
-                    <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
-                        <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Rata-Rata Indeks</span>
-                        <h3 id="stat-avg" class="text-2xl font-bold text-emerald-900 mt-1">0.0 / 5.0</h3>
+                    <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                        <p class="text-xs font-semibold text-blue-700 uppercase">Rata-rata Skor Kepuasan</p>
+                        <p id="statScore" class="text-2xl font-extrabold text-blue-900 mt-1">0.00 / 9.00</p>
                     </div>
-                    <div class="bg-amber-50 border border-amber-100 p-4 rounded-xl">
-                        <span class="text-xs font-semibold text-amber-600 uppercase tracking-wider">Kategori Kepuasan</span>
-                        <h3 id="stat-category" class="text-lg font-bold text-amber-900 mt-1">-</h3>
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                        <p class="text-xs font-semibold text-slate-600 uppercase">Status Sistem</p>
+                        <p class="text-xs font-bold text-slate-800 mt-2 flex items-center"><i class="fa-solid fa-circle-check text-teal-600 mr-1.5"></i> Database Aktif</p>
                     </div>
                 </div>
 
-                <div class="space-y-3">
-                    <h3 class="text-sm font-bold text-slate-900">Daftar Responden Terbaru</h3>
-                    <div class="overflow-x-auto rounded-xl border border-slate-200">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead class="bg-slate-100 text-slate-600 uppercase font-semibold">
-                                <tr>
-                                    <th class="p-3">Waktu</th>
-                                    <th class="p-3">Pemohon / Instansi</th>
-                                    <th class="p-3">Layanan</th>
-                                    <th class="p-3 text-center">Skor</th>
-                                    <th class="p-3">Saran</th>
-                                    <th class="p-3 text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="responses-table-body" class="divide-y divide-slate-100 bg-white">
-                                <tr>
-                                    <td colspan="6" class="p-4 text-center text-slate-400">Memuat data survei...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <!-- Tabel Responden -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 uppercase tracking-wider font-semibold border-b">
+                                <th class="p-3">Waktu</th>
+                                <th class="p-3">Nama / Faskes</th>
+                                <th class="p-3">Layanan</th>
+                                <th class="p-3">Pendidikan / Kedudukan</th>
+                                <th class="p-3 text-center">Skor Rata2</th>
+                                <th class="p-3">Saran</th>
+                                <th class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="responseTableBody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Data akan dimuat melalui JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </div>
-
-        <!-- View: Settings Google Drive -->
-        <div id="view-settings" class="space-y-6 hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-                <div class="border-b border-slate-100 pb-5 mb-6">
-                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fa-brands fa-google-drive text-indigo-600"></i> Integrasi Google Sheets & Google Drive
-                    </h2>
-                    <p class="text-sm text-slate-500 mt-1">Setiap hasil survei yang masuk dapat otomatis disimpan sebagai baris baru ke dalam Spreadsheet di Google Drive Anda.</p>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Google Apps Script Web App URL *</label>
-                        <input type="url" id="gscriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
-                        <p class="text-[11px] text-slate-500 mt-1">Masukkan URL Web App dari Google Apps Script yang terhubung ke Google Spreadsheet Anda.</p>
-                    </div>
-
-                    <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 text-xs text-slate-600 space-y-2">
-                        <p class="font-bold text-indigo-900"><i class="fa-solid fa-circle-info"></i> Cara Menghubungkan ke Google Drive:</p>
-                        <ol class="list-decimal list-inside space-y-1">
-                            <li>Buat Google Spreadsheet baru di Google Drive Anda.</li>
-                            <li>Buka menu <strong>Extensions > Apps Script</strong>.</li>
-                            <li>Salin script di bawah ini, paste ke editor, lalu Deploy sebagai <strong>Web App</strong> (akses: <em>Anyone</em>).</li>
-                            <li>Salin URL Web App dan tempel ke kolom di atas.</li>
-                        </ol>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Contoh Script Google Apps Script:</label>
-                        <textarea readonly rows="6" class="w-full p-3 bg-slate-900 text-slate-200 font-mono text-[11px] rounded-xl focus:outline-none select-all">function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var data = JSON.parse(e.postData.contents);
-  sheet.appendRow([
-    new Date(),
-    data.respondentName,
-    data.surveyPeriod,
-    data.serviceType,
-    data.respondentGender,
-    data.respondentAge,
-    data.respondentEducation,
-    data.respondentPosition,
-    data.accessMethod,
-    data.respondentContact,
-    data.scores.q1,
-    data.scores.q2,
-    data.scores.q3,
-    data.scores.q4,
-    data.avgScore,
-    data.feedbackComment
-  ]);
-  return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
-}</textarea>
-                    </div>
-
-                    <button type="button" onclick="saveGScriptConfig()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition">
-                        Simpan Pengaturan Google Drive
-                    </button>
-                </div>
-            </div>
-        </div>
+        </section>
 
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-8">
-        <p>&copy; 2026 Dinas Kesehatan / Pelayanan Perizinan Terpadu Badung. Siap di-deploy ke Firebase & Terhubung ke Google Drive.</p>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-12 text-center text-xs text-slate-500">
+        <p>&copy; 2026 Bidang Pelayanan Kesehatan - Dinas Kesehatan Kabupaten Badung.</p>
     </footer>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Modal Notifikasi Berhasil -->
+    <div id="successModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-slate-100 space-y-4">
+            <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900">Terima Kasih!</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">Survei kepuasan Anda telah berhasil dikirim dan tersimpan ke sistem database.</p>
+            <button onclick="closeSuccessModal()" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-xl font-semibold text-xs transition shadow-md">
+                Tutup / Isi Lagi
+            </button>
+        </div>
+    </div>
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'health-licensing-survey-app';
-        let firebaseConfig = {};
+    <!-- Script Aplikasi -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKeyForDemoPurposesOnly12345",
+            authDomain: "yankes-badung-skm.firebaseapp.com",
+            projectId: "yankes-badung-skm",
+            storageBucket: "yankes-badung-skm.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456"
+        };
+
+        let db;
         try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                apiKey: "AIzaSyMockKeyForHostingDemoPurposeOnly",
-                authDomain: "mock-project.firebaseapp.com",
-                projectId: "mock-project",
-                storageBucket: "mock-project.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456:web:abcd"
-            };
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.firestore();
         } catch (e) {
-            firebaseConfig = {};
+            console.warn("Firebase offline mode / running on local storage fallback.");
         }
 
-        let app, db, auth;
-        let isFirebaseConnected = false;
-        let localFallbackData = [];
-        let cachedSurveyData = [];
+        let localResponses = JSON.parse(localStorage.getItem('skm_responses') || '[]');
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedUrl = localStorage.getItem('gscript_webhook_url');
-            if (savedUrl) {
-                document.getElementById('gscriptUrl').value = savedUrl;
-            }
-        });
+        function switchView(view) {
+            document.getElementById('surveySection').classList.add('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
 
-        window.saveGScriptConfig = function() {
-            const url = document.getElementById('gscriptUrl').value.trim();
-            localStorage.setItem('gscript_webhook_url', url);
-            showModal("Berhasil Disimpan", "URL Google Apps Script berhasil disimpan. Data survei selanjutnya akan dikirim ke Google Drive Anda.", true);
-        };
-
-        try {
-            if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.projectId) {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                isFirebaseConnected = true;
-            }
-        } catch (err) {
-            console.warn("Firebase initialization warning:", err);
-        }
-
-        async function initAuth() {
-            if (!isFirebaseConnected || !auth) return;
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (err) {
-                console.error("Auth error:", err);
+            if (view === 'survey') {
+                document.getElementById('surveySection').classList.remove('hidden');
+            } else if (view === 'login') {
+                document.getElementById('loginSection').classList.remove('hidden');
+            } else if (view === 'admin') {
+                document.getElementById('adminSection').classList.remove('hidden');
+                loadAdminData();
             }
         }
-        initAuth();
 
-        // UI View Switcher
-        window.switchView = function(viewName) {
-            const formView = document.getElementById('view-form');
-            const loginView = document.getElementById('view-login');
-            const adminView = document.getElementById('view-admin');
-            const settingsView = document.getElementById('view-settings');
-            
-            const formBtn = document.getElementById('nav-form-btn');
-            const loginBtn = document.getElementById('nav-login-btn');
-            const settingsBtn = document.getElementById('nav-settings-btn');
-
-            formView.classList.add('hidden');
-            loginView.classList.add('hidden');
-            adminView.classList.add('hidden');
-            settingsView.classList.add('hidden');
-
-            formBtn.className = "px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-2";
-            loginBtn.className = "px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-2";
-            settingsBtn.className = "px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg border border-indigo-500 hover:bg-indigo-500 transition flex items-center gap-1.5";
-
-            if (viewName === 'form') {
-                formView.classList.remove('hidden');
-                formBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-            } else if (viewName === 'login') {
-                if (sessionStorage.getItem('is_admin_logged_in') === 'true') {
-                    adminView.classList.remove('hidden');
-                    loginBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-                    loadDashboardData();
-                } else {
-                    loginView.classList.remove('hidden');
-                    loginBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-                }
-            } else if (viewName === 'admin') {
-                adminView.classList.remove('hidden');
-                loginBtn.className = "px-4 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-2";
-                loadDashboardData();
-            } else if (viewName === 'settings') {
-                settingsView.classList.remove('hidden');
-                settingsBtn.className = "px-3 py-2 text-xs font-semibold bg-white text-indigo-700 rounded-lg shadow-sm hover:bg-indigo-50 transition flex items-center gap-1.5";
-            }
-        };
-
-        window.handleAdminLogin = function(event) {
-            event.preventDefault();
-            const user = document.getElementById('adminUsername').value.trim();
-            const pass = document.getElementById('adminPassword').value;
-            
-            if (user === 'yankesbadung' && pass === 'Pelayanankesehatan1') {
-                sessionStorage.setItem('is_admin_logged_in', 'true');
-                document.getElementById('adminUsername').value = '';
-                document.getElementById('adminPassword').value = '';
+        function checkAdminAccess() {
+            if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
                 switchView('admin');
             } else {
-                showModal("Login Gagal", "Username atau kata sandi admin salah. Silakan coba kembali.", false);
+                switchView('login');
             }
-        };
+        }
 
-        window.logoutAdmin = function() {
-            sessionStorage.removeItem('is_admin_logged_in');
-            switchView('form');
-        };
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('adminUser').value;
+            const p = document.getElementById('adminPass').value;
 
-        window.showModal = function(title, message, isSuccess = true) {
-            const modal = document.getElementById('modal-container');
-            const icon = document.getElementById('modal-icon');
-            const titleEl = document.getElementById('modal-title');
-            const msgEl = document.getElementById('modal-message');
-
-            titleEl.textContent = title;
-            msgEl.textContent = message;
-
-            if (isSuccess) {
-                icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 text-xl";
-                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+            if (u === 'yankesbadung' && p === 'Pelayanankesehatan1') {
+                sessionStorage.setItem('isAdminLoggedIn', 'true');
+                switchView('admin');
+                document.getElementById('adminUser').value = '';
+                document.getElementById('adminPass').value = '';
             } else {
-                icon.className = "w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 text-xl";
-                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                alert('Username atau Password salah!');
             }
-            modal.classList.remove('hidden');
-        };
+        }
 
-        window.closeModal = function() {
-            document.getElementById('modal-container').classList.add('hidden');
-        };
+        function logoutAdmin() {
+            sessionStorage.removeItem('isAdminLoggedIn');
+            switchView('survey');
+        }
 
-        window.submitSurvey = async function(event) {
-            event.preventDefault();
-            
-            const respondentName = document.getElementById('respondentName').value.trim();
-            const surveyPeriod = document.getElementById('surveyPeriod').value.trim();
-            const respondentGender = document.getElementById('respondentGender').value;
-            const respondentAge = document.getElementById('respondentAge').value;
-            const respondentEducation = document.getElementById('respondentEducation').value;
-            const respondentPosition = document.getElementById('respondentPosition').value;
-            const serviceType = document.getElementById('serviceType').value;
-            const accessMethod = document.getElementById('accessMethod').value;
-            const respondentContact = document.getElementById('respondentContact').value.trim();
-            
-            const q1 = parseInt(document.querySelector('input[name="q1"]:checked')?.value || 0);
-            const q2 = parseInt(document.querySelector('input[name="q2"]:checked')?.value || 0);
-            const q3 = parseInt(document.querySelector('input[name="q3"]:checked')?.value || 0);
-            const q4 = parseInt(document.querySelector('input[name="q4"]:checked')?.value || 0);
-            const feedbackComment = document.getElementById('feedbackComment').value.trim();
+        async function submitSurvey(e) {
+            e.preventDefault();
 
-            const avgScore = Number(((q1 + q2 + q3 + q4) / 4).toFixed(1));
+            const p1 = parseInt(document.querySelector('input[name="p1"]:checked').value);
+            const p2 = parseInt(document.querySelector('input[name="p2"]:checked').value);
+            const p3 = parseInt(document.querySelector('input[name="p3"]:checked').value);
+            const p4 = parseInt(document.querySelector('input[name="p4"]:checked').value);
+            const p5 = parseInt(document.querySelector('input[name="p5"]:checked').value);
+            const avg = ((p1 + p2 + p3 + p4 + p5) / 5).toFixed(2);
 
-            const surveyPayload = {
-                respondentName,
-                surveyPeriod,
-                respondentGender,
-                respondentAge,
-                respondentEducation,
-                respondentPosition,
-                serviceType,
-                accessMethod,
-                respondentContact,
-                scores: { q1, q2, q3, q4 },
-                avgScore,
-                feedbackComment,
-                createdAt: new Date().toISOString()
+            const formData = {
+                id: 'RESP_' + Date.now(),
+                timestamp: new Date().toISOString(),
+                nama: document.getElementById('nama').value,
+                telepon: document.getElementById('telepon').value,
+                jenisLayanan: document.getElementById('jenisLayanan').value,
+                pendidikan: document.getElementById('pendidikan').value,
+                kedudukan: document.getElementById('kedudukan').value,
+                namaFaskes: document.getElementById('namaFaskes').value,
+                scores: [p1, p2, p3, p4, p5],
+                averageScore: parseFloat(avg),
+                saran: document.getElementById('saran').value || '-'
             };
 
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim & Menyimpan ke Google Drive...';
+            localResponses.unshift(formData);
+            localStorage.setItem('skm_responses', JSON.stringify(localResponses));
 
-            try {
-                if (isFirebaseConnected && db) {
-                    const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan');
-                    await addDoc(collectionPath, surveyPayload);
-                } else {
-                    localFallbackData.unshift(surveyPayload);
+            if (db) {
+                try {
+                    await db.collection('survei_kepuasan').add(formData);
+                } catch (err) {
+                    console.log("Firestore sync warning:", err);
                 }
+            }
 
-                const gscriptUrl = localStorage.getItem('gscript_webhook_url');
-                if (gscriptUrl) {
-                    try {
-                        await fetch(gscriptUrl, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(surveyPayload)
+            document.getElementById('surveyForm').reset();
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        async function loadAdminData() {
+            let allData = [...localResponses];
+
+            if (db) {
+                try {
+                    const snapshot = await db.collection('survei_kepuasan').orderBy('timestamp', 'desc').get();
+                    if (!snapshot.empty) {
+                        allData = [];
+                        snapshot.forEach(doc => {
+                            allData.push({ firestoreId: doc.id, ...doc.data() });
                         });
-                    } catch (netErr) {
-                        console.warn("Google Drive WebApp warning:", netErr);
                     }
+                } catch (err) {
+                    console.log("Using local backup data.");
                 }
-
-                showModal("Terima Kasih!", "Survei kepuasan Anda berhasil dikirim dan tersimpan di sistem serta Google Drive. Masukan Anda sangat berarti bagi peningkatan kualitas layanan.", true);
-                document.getElementById('survey-form').reset();
-            } catch (err) {
-                console.error("Error saving survey:", err);
-                showModal("Gagal Mengirim", "Terjadi kendala saat menyimpan survei. Silakan coba beberapa saat lagi.", false);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Survei Kepuasan';
             }
-        };
 
-        window.loadDashboardData = async function() {
-            if (sessionStorage.getItem('is_admin_logged_in') !== 'true') {
-                switchView('login');
+            const tbody = document.getElementById('responseTableBody');
+            tbody.innerHTML = '';
+
+            let totalScoreSum = 0;
+
+            if (allData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500">Belum ada data survei masuk.</td></tr>`;
+                document.getElementById('statTotal').innerText = '0';
+                document.getElementById('statScore').innerText = '0.00 / 9.00';
                 return;
             }
 
-            const tableBody = document.getElementById('responses-table-body');
-            tableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Memuat data...</td></tr>';
+            allData.forEach((item, index) => {
+                totalScoreSum += item.averageScore || 0;
+                const dateStr = new Date(item.timestamp).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
-            let dataList = [];
-            try {
-                if (isFirebaseConnected && db) {
-                    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan'));
-                    const querySnapshot = await getDocs(q);
-                    querySnapshot.forEach((docSnap) => {
-                        dataList.push({ id: docSnap.id, ...docSnap.data() });
-                    });
-                } else {
-                    dataList = localFallbackData;
-                }
-            } catch (err) {
-                console.error("Error loading dashboard data:", err);
-                dataList = localFallbackData;
-            }
-
-            cachedSurveyData = dataList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-            const total = cachedSurveyData.length;
-            document.getElementById('stat-total').textContent = total;
-
-            if (total > 0) {
-                const totalScoreSum = cachedSurveyData.reduce((acc, curr) => acc + (curr.avgScore || 0), 0);
-                const overallAvg = (totalScoreSum / total).toFixed(1);
-                document.getElementById('stat-avg').textContent = `${overallAvg} / 5.0`;
-
-                let cat = "Sangat Baik";
-                if (overallAvg < 2.0) cat = "Kurang";
-                else if (overallAvg < 3.0) cat = "Cukup";
-                else if (overallAvg < 4.0) cat = "Baik";
-                document.getElementById('stat-category').textContent = cat;
-            } else {
-                document.getElementById('stat-avg').textContent = "0.0 / 5.0";
-                document.getElementById('stat-category').textContent = "Belum ada data";
-            }
-
-            if (total === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada responden yang mengisi survei.</td></tr>';
-                return;
-            }
-
-            tableBody.innerHTML = '';
-            cachedSurveyData.forEach(item => {
-                const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 transition";
-                
-                const docIdStr = item.id ? `'${item.id}'` : 'null';
-                const respondentNameSafe = escapeHtml(item.respondentName || 'Responden').replace(/'/g, "\\'");
-
-                row.innerHTML = `
-                    <td class="p-3 text-slate-500 whitespace-nowrap">${dateStr}</td>
-                    <td class="p-3 font-medium text-slate-900">${escapeHtml(item.respondentName)}<br><span class="text-[10px] text-slate-400 font-normal">${escapeHtml(item.respondentContact)}</span></td>
-                    <td class="p-3"><span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 font-semibold rounded-md text-[10px]">${escapeHtml(item.serviceType)}</span></td>
-                    <td class="p-3 text-center font-bold text-indigo-600">${item.avgScore}</td>
-                    <td class="p-3 text-slate-600 italic max-w-xs truncate">${escapeHtml(item.feedbackComment || '-')}</td>
-                    <td class="p-3 text-center whitespace-nowrap">
-                        <button type="button" onclick="deleteResponse(${docIdStr}, '${respondentNameSafe}')" class="px-2.5 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition font-medium flex items-center gap-1 mx-auto cursor-pointer" title="Hapus Responden">
-                            <i class="fa-solid fa-trash-can"></i> Hapus
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-600">${dateStr}</td>
+                    <td class="p-3 font-semibold text-slate-800">${item.nama}<br><span class="text-xs font-normal text-slate-500">${item.namaFaskes} (${item.telepon})</span></td>
+                    <td class="p-3"><span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-xs font-medium">${item.jenisLayanan}</span></td>
+                    <td class="p-3 text-slate-600">${item.pendidikan}<br><span class="text-xs text-slate-500">${item.kedudukan}</span></td>
+                    <td class="p-3 text-center font-bold text-teal-700">${item.averageScore}</td>
+                    <td class="p-3 text-slate-600 italic">"${item.saran}"</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteResponse('${item.id || item.firestoreId}', ${index})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1.5 rounded text-xs font-medium transition" title="Hapus Responden">
+                            <i class="fa-solid fa-trash"></i>
                         </button>
                     </td>
                 `;
-                tableBody.appendChild(row);
+                tbody.appendChild(tr);
             });
-        };
 
-        window.deleteResponse = async function(docId, respondentName) {
-            // Using custom modal or direct promise confirmation to avoid browser alert/confirm blocking in iframe
-            const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus data survei dari "${respondentName}"?`);
-            if (!confirmDelete) return;
+            document.getElementById('statTotal').innerText = allData.length;
+            document.getElementById('statScore').innerText = (totalScoreSum / allData.length).toFixed(2) + ' / 9.00';
+        }
 
-            try {
-                if (isFirebaseConnected && db && docId && docId !== 'null') {
-                    const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan', docId));
-                } else {
-                    localFallbackData = localFallbackData.filter(item => item.id !== docId && item.respondentName !== respondentName);
+        async function deleteResponse(id, localIndex) {
+            if (confirm("Apakah Anda yakin ingin menghapus data responden ini?")) {
+                localResponses.splice(localIndex, 1);
+                localStorage.setItem('skm_responses', JSON.stringify(localResponses));
+
+                if (db) {
+                    try {
+                        const snapshot = await db.collection('survei_kepuasan').where('id', '==', id).get();
+                        snapshot.forEach(doc => {
+                            doc.ref.delete();
+                        });
+                    } catch (e) {
+                        console.log("Delete error:", e);
+                    }
                 }
-                showModal("Berhasil Dihapus", `Data survei dari ${respondentName} telah dihapus dari sistem.`, true);
-                loadDashboardData();
-            } catch (err) {
-                console.error("Error deleting document:", err);
-                showModal("Gagal Menghapus", "Terjadi kesalahan saat menghapus data. Silakan coba kembali.", false);
-            }
-        };
 
-        window.downloadExcel = function() {
-            if (!cachedSurveyData || cachedSurveyData.length === 0) {
-                showModal("Data Kosong", "Tidak ada data responden untuk diunduh.", false);
+                loadAdminData();
+            }
+        }
+
+        function downloadExcel() {
+            if (localResponses.length === 0) {
+                alert("Tidak ada data untuk di-export.");
                 return;
             }
-
-            const exportData = cachedSurveyData.map((item, index) => ({
-                No: index + 1,
-                Waktu: item.createdAt ? new Date(item.createdAt).toLocaleString('id-ID') : '-',
-                'Nama Pemohon / Instansi': item.respondentName,
-                'Periode': item.surveyPeriod || '-',
-                'Jenis Layanan': item.serviceType,
-                'Cara Akses': item.accessMethod || '-',
-                'Jenis Kelamin': item.respondentGender || '-',
-                'Usia': item.respondentAge || '-',
-                'Pendidikan Terakhir': item.respondentEducation || '-',
-                'Kedudukan / Jabatan': item.respondentPosition || '-',
-                'Kontak / WhatsApp': item.respondentContact,
-                'Skor Q1 (Prosedur)': item.scores?.q1 || '-',
-                'Skor Q2 (Waktu)': item.scores?.q2 || '-',
-                'Skor Q3 (Biaya)': item.scores?.q3 || '-',
-                'Skor Q4 (Produk)': item.scores?.q4 || '-',
-                'Rata-Rata Skor': item.avgScore,
-                'Kritik & Saran': item.feedbackComment || '-'
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const worksheet = XLSX.utils.json_to_sheet(localResponses.map(r => ({
+                Waktu: r.timestamp,
+                Nama: r.nama,
+                Telepon: r.telepon,
+                Layanan: r.jenisLayanan,
+                Pendidikan: r.pendidikan,
+                Kedudukan: r.kedudukan,
+                Faskes: r.namaFaskes,
+                NilaiRataRata: r.averageScore,
+                Saran: r.saran
+            })));
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Survei Kesehatan");
-            XLSX.writeFile(workbook, "Rekap_Survei_Perizinan_Kesehatan.xlsx");
-        };
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Survei Kepuasan");
+            XLSX.writeFile(workbook, "Rekap_Survei_Kepuasan_Yankes.xlsx");
+        }
 
-        window.downloadPDF = function() {
-            if (!cachedSurveyData || cachedSurveyData.length === 0) {
-                showModal("Data Kosong", "Tidak ada data responden untuk diunduh.", false);
+        function downloadPDF() {
+            if (localResponses.length === 0) {
+                alert("Tidak ada data untuk di-export.");
                 return;
             }
-
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('landscape');
+            const doc = new jsPDF('l', 'mm', 'a4');
 
-            doc.setFontSize(16);
-            doc.setTextColor(30, 41, 59);
-            doc.text("Laporan Rekapitulasi Survei Kepuasan Perizinan Kesehatan", 14, 15);
-
+            doc.setFontSize(14);
+            doc.text("Rekapitulasi Survei Kepuasan Pelayanan Perizinan Kesehatan", 14, 15);
             doc.setFontSize(10);
-            doc.setTextColor(100, 116, 139);
-            doc.text("Dicetak pada: " + new Date().toLocaleString('id-ID'), 14, 22);
+            doc.text("Bidang Pelayanan Kesehatan - Dinas Kesehatan Kabupaten Badung", 14, 22);
 
-            const tableHeaders = [["No", "Waktu", "Pemohon / Instansi", "Layanan", "Jabatan", "Kontak", "Q1", "Q2", "Q3", "Q4", "Rata2", "Saran"]];
-            const tableRows = cachedSurveyData.map((item, index) => [
-                index + 1,
-                item.createdAt ? new Date(item.createdAt).toLocaleDateString('id-ID') : '-',
-                item.respondentName,
-                item.serviceType,
-                item.respondentPosition || '-',
-                item.respondentContact,
-                item.scores?.q1 || '-',
-                item.scores?.q2 || '-',
-                item.scores?.q3 || '-',
-                item.scores?.q4 || '-',
-                item.avgScore,
-                item.feedbackComment || '-'
+            const tableData = localResponses.map(r => [
+                r.timestamp.substring(0, 10),
+                r.nama,
+                r.jenisLayanan,
+                r.namaFaskes,
+                r.pendidikan + " / " + r.kedudukan,
+                r.averageScore,
+                r.saran
             ]);
 
             doc.autoTable({
-                head: tableHeaders,
-                body: tableRows,
                 startY: 28,
-                styles: { fontSize: 8, cellPadding: 3 },
-                headStyles: { fillColor: [79, 70, 229] }
+                head: [['Waktu', 'Nama Responden', 'Layanan', 'Faskes', 'Pendidikan/Kedudukan', 'Skor', 'Saran']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [13, 148, 136] },
+                styles: { fontSize: 8 }
             });
 
-            doc.save("Rekap_Survei_Perizinan_Kesehatan.pdf");
-        };
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            doc.save("Rekap_Survei_Kepuasan_Yankes.pdf");
         }
     </script>
 </body>
