@@ -230,27 +230,6 @@
                     </div>
                 </div>
 
-                <!-- GitHub / Vercel Deployment Instructions Box -->
-                <div class="bg-slate-900 text-slate-100 p-6 rounded-2xl space-y-4 shadow-md">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-indigo-600 p-2.5 rounded-xl text-white">
-                            <i class="fa-solid fa-code-branch text-xl"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-base">Cara Menyimpan ke GitHub & Hosting di Vercel</h4>
-                            <p class="text-xs text-slate-400">Ikuti langkah mudah berikut agar aplikasi online dan laporan tersimpan aman.</p>
-                        </div>
-                    </div>
-                    <ol class="list-decimal list-inside space-y-2 text-xs text-slate-300 leading-relaxed pl-1">
-                        <li>Simpan kode file ini dengan nama <code class="bg-slate-800 text-indigo-300 px-1.5 py-0.5 rounded font-mono">index.html</code> di komputer Anda.</li>
-                        <li>Buat repository baru di <a href="https://github.com" target="_blank" class="text-indigo-400 underline">GitHub.com</a> (misal: <code class="text-indigo-300">survei-yankes-badung</code>).</li>
-                        <li>Unggah (<code class="text-indigo-300">Upload</code>) file <code class="text-indigo-300">index.html</code> tersebut ke repository GitHub Anda.</li>
-                        <li>Buka <a href="https://vercel.com" target="_blank" class="text-indigo-400 underline">Vercel.com</a>, login menggunakan akun GitHub Anda.</li>
-                        <li>Klik <code class="text-indigo-300">Add New...</code> -> <code class="text-indigo-300">Project</code>, lalu pilih repository GitHub yang baru saja Anda buat.</li>
-                        <li>Klik <code class="text-indigo-300">Deploy</code> tanpa mengubah pengaturan tambahan apapun. Selesai! Aplikasi Anda kini sudah online.</li>
-                    </ol>
-                </div>
-
             </div>
         </div>
 
@@ -392,10 +371,13 @@
             allData.unshift(responden);
             localStorage.setItem('skm_yankes_badung_data', JSON.stringify(allData));
 
-            // Reset Form & Tampilkan Notif
+            // Reset Form
             document.getElementById('formSurvei').reset();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Tampilkan modal notifikasi terima kasih secara eksplisit setelah kirim survei
             showNotif('Terima Kasih!', 'Survei kepuasan Anda berhasil dikirim dan tersimpan. Masukan Anda sangat berharga bagi peningkatan layanan kesehatan.', 'success');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // Navigasi Tab
@@ -436,8 +418,9 @@
         }
 
         function closeAdminModal() {
-            document.getElementById('modalAdminLogin').classList.remove('flex');
-            document.getElementById('modalAdminLogin').classList.add('hidden');
+            const modalAdmin = document.getElementById('modalAdminLogin');
+            modalAdmin.classList.remove('flex');
+            modalAdmin.classList.add('hidden');
         }
 
         // Verifikasi Kredensial Admin
@@ -620,13 +603,15 @@
                 iconDiv.className = "w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl";
                 iconDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
             }
-            document.getElementById('modalNotif').classList.remove('hidden');
-            document.getElementById('modalNotif').classList.add('flex');
+            const modalNotif = document.getElementById('modalNotif');
+            modalNotif.classList.remove('hidden');
+            modalNotif.classList.add('flex');
         }
 
         function closeNotif() {
-            document.getElementById('modalNotif').classList.remove('flex');
-            document.getElementById('modalNotif').classList.add('hidden');
+            const modalNotif = document.getElementById('modalNotif');
+            modalNotif.classList.remove('flex');
+            modalNotif.classList.add('hidden');
         }
 
         // Jalankan render saat halaman dimuat
