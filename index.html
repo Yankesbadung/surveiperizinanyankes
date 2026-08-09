@@ -723,164 +723,108 @@
         };
 
         window.submitSurvey = async function(event) {
-            event.preventDefault();
-            
-            const respondentName = document.getElementById('respondentName').value.trim();
-            const surveyPeriod = document.getElementById('surveyPeriod').value.trim();
-            const respondentGender = document.getElementById('respondentGender').value;
-            const respondentAge = document.getElementById('respondentAge').value;
-            const respondentEducation = document.getElementById('respondentEducation').value;
-            const respondentPosition = document.getElementById('respondentPosition').value;
-            const serviceType = document.getElementById('serviceType').value;
-            const accessMethod = document.getElementById('accessMethod').value;
-            const respondentContact = document.getElementById('respondentContact').value.trim();
-            
-            // Read all 9 question values (safe parse)
-            const q1 = parseInt(document.querySelector('input[name="q1"]:checked')?.value || 0, 10);
-            const q2 = parseInt(document.querySelector('input[name="q2"]:checked')?.value || 0, 10);
-            const q3 = parseInt(document.querySelector('input[name="q3"]:checked')?.value || 0, 10);
-            const q4 = parseInt(document.querySelector('input[name="q4"]:checked')?.value || 0, 10);
-            const q5 = parseInt(document.querySelector('input[name="q5"]:checked')?.value || 0, 10);
-            const q6 = parseInt(document.querySelector('input[name="q6"]:checked')?.value || 0, 10);
-            const q7 = parseInt(document.querySelector('input[name="q7"]:checked')?.value || 0, 10);
-            const q8 = parseInt(document.querySelector('input[name="q8"]:checked')?.value || 0, 10);
-            const q9 = parseInt(document.querySelector('input[name="q9"]:checked')?.value || 0, 10);
-            const feedbackComment = document.getElementById('feedbackComment').value.trim();
+    event.preventDefault();
 
-            // Average across 9 questions (if you want to ignore unanswered questions, adjust logic)
-            const sum = q1 + q2 + q3 + q4 + q5 + q6 + q7 + q8 + q9;
-            const avgScore = Number((sum / 9).toFixed(1));
+    const respondentName = document.getElementById('respondentName').value.trim();
+    const surveyPeriod = document.getElementById('surveyPeriod').value.trim();
+    const respondentGender = document.getElementById('respondentGender').value;
+    const respondentAge = document.getElementById('respondentAge').value;
+    const respondentEducation = document.getElementById('respondentEducation').value;
+    const respondentPosition = document.getElementById('respondentPosition').value;
+    const serviceType = document.getElementById('serviceType').value;
+    const accessMethod = document.getElementById('accessMethod').value;
+    const respondentContact = document.getElementById('respondentContact').value.trim();
 
-            const surveyPayload = {
-                respondentName,
-                surveyPeriod,
-                respondentGender,
-                respondentAge,
-                respondentEducation,
-                respondentPosition,
-                serviceType,
-                accessMethod,
-                respondentContact,
-                scores: { q1, q2, q3, q4, q5, q6, q7, q8, q9 },
-                avgScore,
-                feedbackComment,
-                createdAt: new Date().toISOString()
-            };
+    const q1 = parseInt(document.querySelector('input[name="q1"]:checked')?.value || 0, 10);
+    const q2 = parseInt(document.querySelector('input[name="q2"]:checked')?.value || 0, 10);
+    const q3 = parseInt(document.querySelector('input[name="q3"]:checked')?.value || 0, 10);
+    const q4 = parseInt(document.querySelector('input[name="q4"]:checked')?.value || 0, 10);
+    const q5 = parseInt(document.querySelector('input[name="q5"]:checked')?.value || 0, 10);
+    const q6 = parseInt(document.querySelector('input[name="q6"]:checked')?.value || 0, 10);
+    const q7 = parseInt(document.querySelector('input[name="q7"]:checked')?.value || 0, 10);
+    const q8 = parseInt(document.querySelector('input[name="q8"]:checked')?.value || 0, 10);
+    const q9 = parseInt(document.querySelector('input[name="q9"]:checked')?.value || 0, 10);
+    const feedbackComment = document.getElementById('feedbackComment').value.trim();
 
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+    const sum = q1 + q2 + q3 + q4 + q5 + q6 + q7 + q8 + q9;
+    const avgScore = Number((sum / 9).toFixed(1));
 
+    const surveyPayload = {
+        respondentName,
+        surveyPeriod,
+        respondentGender,
+        respondentAge,
+        respondentEducation,
+        respondentPosition,
+        serviceType,
+        accessMethod,
+        respondentContact,
+        scores: { q1, q2, q3, q4, q5, q6, q7, q8, q9 },
+        avgScore,
+        feedbackComment,
+        createdAt: new Date().toISOString()
+    };
+
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+
+    // helper: timeout wrapper
+    const withTimeout = (p, ms) => {
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
+        return Promise.race([p, timeout]);
+    };
+
+    try {
+        // try save to Firestore (with timeout)
+        if (isFirebaseConnected && db) {
             try {
-                if (isFirebaseConnected && db) {
+                const savePromise = (async () => {
                     const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan');
                     await addDoc(collectionPath, surveyPayload);
-                } else {
-                    // add small id for local fallback so deletion/filtering works
-                    surveyPayload.id = String(Date.now());
-                    localFallbackData.unshift(surveyPayload);
-                }
-
-                const gscriptUrl = localStorage.getItem('gscript_webhook_url');
-                if (gscriptUrl) {
-                    try {
-                        await fetch(gscriptUrl, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(surveyPayload)
-                        });
-                    } catch (netErr) {
-                        console.warn("Google Drive WebApp warning:", netErr);
-                    }
-                }
-
-                showModal("Terima Kasih!", "Survei kepuasan Anda berhasil dikirim dan tersimpan di sistem serta Google Drive. Masukan Anda sangat berarti bagi peningkatan kualitas layanan.", true);
-                document.getElementById('survey-form').reset();
-            } catch (err) {
-                console.error("Error saving survey:", err);
-                showModal("Gagal Mengirim", "Terjadi kendala saat menyimpan survei. Silakan coba beberapa saat lagi.", false);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Survei Kepuasan';
+                })();
+                // timeout after 8s to avoid hanging UI
+                await withTimeout(savePromise, 8000);
+            } catch (errSave) {
+                console.warn('Simpan ke Firebase gagal/timeout:', errSave);
+                // fallback ke local
+                surveyPayload.id = String(Date.now());
+                localFallbackData.unshift(surveyPayload);
             }
-        };
+        } else {
+            // local fallback
+            surveyPayload.id = String(Date.now());
+            localFallbackData.unshift(surveyPayload);
+        }
 
-        window.loadDashboardData = async function() {
-            if (sessionStorage.getItem('is_admin_logged_in') !== 'true') {
-                switchView('login');
-                return;
-            }
-
-            const tableBody = document.getElementById('responses-table-body');
-            tableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Memuat data...</td></tr>';
-
-            let dataList = [];
+        // try send to Google Apps Script (if configured) but don't block UI for long
+        const gscriptUrl = localStorage.getItem('gscript_webhook_url');
+        if (gscriptUrl) {
             try {
-                if (isFirebaseConnected && db) {
-                    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'survei_perizinan_kesehatan'));
-                    const querySnapshot = await getDocs(q);
-                    querySnapshot.forEach((docSnap) => {
-                        dataList.push({ id: docSnap.id, ...docSnap.data() });
-                    });
-                } else {
-                    dataList = localFallbackData;
-                }
-            } catch (err) {
-                console.error("Error loading dashboard data:", err);
-                dataList = localFallbackData;
+                const fetchPromise = fetch(gscriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(surveyPayload)
+                });
+                // limit to 6s
+                await withTimeout(fetchPromise, 6000).catch(e => { throw e; });
+            } catch (errNet) {
+                console.warn('Google Drive WebApp warning/timeout:', errNet);
             }
+        }
 
-            cachedSurveyData = dataList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-            const total = cachedSurveyData.length;
-            document.getElementById('stat-total').textContent = total;
-
-            if (total > 0) {
-                const totalScoreSum = cachedSurveyData.reduce((acc, curr) => acc + (Number(curr.avgScore) || 0), 0);
-                const overallAvg = (totalScoreSum / total).toFixed(1);
-                document.getElementById('stat-avg').textContent = `${overallAvg} / 5.0`;
-
-                let cat = "Sangat Baik";
-                const avgNum = Number(overallAvg);
-                if (avgNum < 2.0) cat = "Kurang";
-                else if (avgNum < 3.0) cat = "Cukup";
-                else if (avgNum < 4.0) cat = "Baik";
-                document.getElementById('stat-category').textContent = cat;
-            } else {
-                document.getElementById('stat-avg').textContent = "0.0 / 5.0";
-                document.getElementById('stat-category').textContent = "Belum ada data";
-            }
-
-            if (total === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada responden yang mengisi survei.</td></tr>';
-                return;
-            }
-
-            tableBody.innerHTML = '';
-            cachedSurveyData.forEach(item => {
-                const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 transition";
-                
-                const docIdStr = item.id ? `'${item.id}'` : 'null';
-                const respondentNameSafe = escapeHtml(item.respondentName || 'Responden').replace(/'/g, "\\'");
-
-                row.innerHTML = `
-                    <td class="p-3 text-slate-500 whitespace-nowrap">${dateStr}</td>
-                    <td class="p-3 font-medium text-slate-900">${escapeHtml(item.respondentName)}<br><span class="text-[10px] text-slate-400 font-normal">${escapeHtml(item.respondentContact)}</span></td>
-                    <td class="p-3"><span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 font-semibold rounded-md text-[10px]">${escapeHtml(item.serviceType)}</span></td>
-                    <td class="p-3 text-center font-bold text-indigo-600">${item.avgScore}</td>
-                    <td class="p-3 text-slate-600 italic max-w-xs truncate">${escapeHtml(item.feedbackComment || '-')}</td>
-                    <td class="p-3 text-center whitespace-nowrap">
-                        <button type="button" onclick="deleteResponse(${docIdStr}, '${respondentNameSafe}')" class="px-2.5 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition font-semibold text-xs">
-                            <i class="fa-solid fa-trash-can"></i> Hapus
-                        </button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        };
+        showModal("Terima Kasih!", "Survei kepuasan Anda berhasil dikirim dan tersimpan di sistem serta Google Drive (jika terkonfigurasi). Masukan Anda sangat berarti bagi peningkatan kualitas layanan.", true);
+        document.getElementById('survey-form').reset();
+    } catch (err) {
+        console.error("Error saving survey (unexpected):", err);
+        showModal("Gagal Mengirim", "Terjadi kendala saat menyimpan survei. Silakan coba beberapa saat lagi.", false);
+    } finally {
+        // pastikan tombol dikembalikan ke keadaan semula kapanpun
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Survei Kepuasan';
+    }
+};
 
         window.deleteResponse = async function(docId, respondentName) {
             // Using custom modal or direct promise confirmation to avoid browser alert/confirm blocking in iframe
