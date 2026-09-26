@@ -18,8 +18,9 @@
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="bg-indigo-700 p-2.5 rounded-xl shadow-inner text-indigo-200">
-                    <i class="fa-solid fa-hospital-user text-2xl"></i>
+                <!-- Logo PNG Ditambahkan di Sini -->
+                <div class="bg-white p-1.5 rounded-xl shadow-inner flex items-center justify-center">
+                    <img src="logo-jenin.png" alt="Logo" class="w-10 h-10 object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/40?text=Logo';">
                 </div>
                 <div>
                     <h1 class="text-lg sm:text-xl font-bold tracking-tight">SKM Perizinan Kesehatan Yankes Badung</h1>
@@ -46,7 +47,7 @@
                 <h2 class="text-xl font-bold text-slate-900">Formulir Survei Kepuasan Masyarakat</h2>
                 <div class="bg-indigo-50/60 border-l-4 border-indigo-600 p-4 rounded-r-xl text-sm text-slate-700 space-y-2">
                     <p class="font-semibold text-indigo-900">Yth. Bapak/Ibu Pengguna Layanan Perizinan Kesehatan,</p>
-                    <p>Dalam rangka meningkatkan kualitas pelayanan perizinan klinik, kami memohon kesediaan Bapak/Ibu untuk memberikan penilaian terhadap pelayanan yang telah diterima. (Klinik, Rumah Sakit, Hatra, dan Laboratorium). Survei ini tidak memengaruhi proses maupun hasil perizinan klinik. Identitas dan jawaban responden akan dijaga kerahasiaannya serta hanya digunakan sebagai bahan evaluasi dan peningkatan kualitas pelayanan.</p>
+                    <p>Dalam rangka meningkatkan kualitas pelayanan perizinan kesehatan, kami memohon kesediaan Bapak/Ibu untuk memberikan penilaian terhadap pelayanan yang telah diterima (Klinik, Rumah Sakit, Hatra, dan Laboratorium). Survei ini tidak memengaruhi proses maupun hasil perizinan. Identitas dan jawaban responden akan dijaga kerahasiaannya serta hanya digunakan sebagai bahan evaluasi.</p>
                     <p class="italic text-xs text-indigo-800">* Berikan tanda centang pada jawaban yang paling sesuai dengan pengalaman Bapak/Ibu.</p>
                 </div>
                 
@@ -148,7 +149,7 @@
 
                 <!-- 9 Pertanyaan Survei -->
                 <div id="daftarPertanyaan" class="space-y-4">
-                    <!-- Script akan merender 9 pertanyaan otomatis -->
+                    <!-- Script merender 9 pertanyaan otomatis -->
                 </div>
 
                 <!-- 1 Kolom Catatan / Saran -->
@@ -202,7 +203,7 @@
                     </div>
                 </div>
 
-                <!-- Tabela Data Responden -->
+                <!-- Tabel Data Responden -->
                 <div class="space-y-3">
                     <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Daftar Hasil Masuk</h3>
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
@@ -230,7 +231,7 @@
 
     </main>
 
-    <!-- Modal Login Admin dengan Username & Password -->
+    <!-- Modal Login Admin -->
     <div id="modalAdminLogin" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
             <div class="flex justify-between items-center">
@@ -243,11 +244,11 @@
             <div class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
-                    <input type="text" id="inputAdminUser" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder
+                    <input type="text" id="inputAdminUser" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Username admin">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
-                    <input type="password" id="inputAdminPassword" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder
+                    <input type="password" id="inputAdminPassword" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Password admin">
                 </div>
                 <p id="errorPassword" class="text-xs text-rose-500 hidden font-medium">Username atau Password salah! Coba lagi.</p>
             </div>
@@ -273,15 +274,15 @@
     <script>
         // Data 9 Pertanyaan Sesuai Standar SKM Perizinan Kesehatan
         const daftarSoal = [
-            { id: 1, kategori: "PERSYARATAN PELAYANAN", judul: "Bagaimana pendapat Anda mengenai kejelasan dan kemudahan persyaratan yang harus dipenuhi dalam pengurusan perizinan klinik?" },
-            { id: 2, kategori: "SISTEM, MEKANISME DAN PROSEDUR", judul: "Bagaimana pendapat Anda mengenai kejelasan alur, tahapan, mekanisme, dan prosedur layanan perizinan klinik?" },
+            { id: 1, kategori: "PERSYARATAN PELAYANAN", judul: "Bagaimana pendapat Anda mengenai kejelasan dan kemudahan persyaratan yang harus dipenuhi dalam pengurusan perizinan kesehatan?" },
+            { id: 2, kategori: "SISTEM, MEKANISME DAN PROSEDUR", judul: "Bagaimana pendapat Anda mengenai kejelasan alur, tahapan, mekanisme, dan prosedur layanan perizinan kesehatan?" },
             { id: 3, kategori: "WAKTU PENYELESAIAN", judul: "Bagaimana pendapat Anda mengenai kesesuaian waktu penyelesaian layanan dengan standar waktu yang telah ditetapkan?" },
-            { id: 4, kategori: "BIAYA / TARIF", judul: "Bagaimana pendapat Anda mengenai keterbukaan, kepastian, dan kesesuaian biaya atau tarif dalam layanan perizinan klinik?" },
-            { id: 5, kategori: "PROSEDUR ATAU HASIL LAYANAN", judul: "Bagaimana pendapat Anda mengenai keterbukaan, kepastian, dan kesesuaian biaya atau tarif dalam layanan perizinan klinik??" },
-            { id: 6, kategori: "PRODUK ATAU HASIL LAYANAN", judul: "Bagaimana pendapat Anda mengenai kesesuaian hasil layanan yang diterima, seperti rekomendasi, berita acara visitasi, persetujuan, atau dokumen perizinan klinik?" },
-            { id: 7, kategori: "KOPETENSI PELAKSANAAN", judul: "Bagaimana pendapat Anda mengenai kemampuan dan pengetahuan petugas dalam memberikan informasi serta memproses layanan perizinan klinik?" },
-            { id: 8, kategori: "PRILAKU PELAKSANA", judul: "Bagaimana pendapat Anda mengenai kesopanan, keramahan, keadilan, ketelitian, dan sikap petugas selama memberikan pelayanan?" },
-            { id: 9, kategori: "PENANGANAN, PENGADUAN, SARAN DAN MASUKAN", judul: "Bagaimana pendapat Anda mengenai kemudahan menyampaikan pengaduan atau masukan serta kecepatan petugas dalam menindaklanjutinya?" }
+            { id: 4, kategori: "BIAYA / TARIF", judul: "Bagaimana pendapat Anda mengenai keterbukaan, kepastian, dan kesesuaian biaya atau tarif dalam layanan perizinan kesehatan?" },
+            { id: 5, kategori: "PRODUK / SARANA PRASARANA", judul: "Bagaimana pendapat Anda mengenai kenyamanan sarana, prasarana, atau fasilitas pendukung pelayanan perizinan?" },
+            { id: 6, kategori: "PRODUK ATAU HASIL LAYANAN", judul: "Bagaimana pendapat Anda mengenai kesesuaian hasil layanan yang diterima, seperti rekomendasi, berita acara visitasi, persetujuan, atau dokumen perizinan?" },
+            { id: 7, kategori: "KOMPETENSI PELAKSANA", judul: "Bagaimana pendapat Anda mengenai kemampuan dan pengetahuan petugas dalam memberikan informasi serta memproses layanan perizinan?" },
+            { id: 8, kategori: "PERILAKU PELAKSANA", judul: "Bagaimana pendapat Anda mengenai kesopanan, keramahan, keadilan, ketelitian, dan sikap petugas selama memberikan pelayanan?" },
+            { id: 9, kategori: "PENANGANAN PENGADUAN", judul: "Bagaimana pendapat Anda mengenai kemudahan menyampaikan pengaduan atau masukan serta kecepatan petugas dalam menindaklanjutinya?" }
         ];
 
         // Inisialisasi Render 9 Pertanyaan ke HTML
@@ -330,7 +331,6 @@
         function submitSurvei(event) {
             event.preventDefault();
             
-            // Kumpulkan data responden
             const responden = {
                 id: Date.now(),
                 tanggal: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }),
@@ -346,7 +346,6 @@
                 catatan: document.getElementById('catatanResponden').value || '-'
             };
 
-            // Kumpulkan jawaban 9 soal
             let totalSkor = 0;
             let jawabanSoal = {};
             for (let i = 1; i <= 9; i++) {
@@ -361,14 +360,12 @@
             responden.jawabanSoal = jawabanSoal;
             responden.rataSkor = (totalSkor / 9).toFixed(2);
 
-            // Simpan ke localStorage
             const allData = getStoredData();
             allData.unshift(responden);
             localStorage.setItem('skm_yankes_badung_data', JSON.stringify(allData));
 
-            // Reset Form
             document.getElementById('formSurvei').reset();
-            
+            showNotif('Berhasil!', 'Terima kasih, survei kepuasan Anda telah berhasil dikirim.');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     
@@ -397,7 +394,6 @@
 
         // Buka & Tutup Modal Login Admin
         function openAdminModal() {
-            // Jika sudah di tab admin, abaikan atau langsung tampilkan
             const viewAdmin = document.getElementById('viewAdmin');
             if (!viewAdmin.classList.contains('hidden')) {
                 return;
@@ -447,7 +443,7 @@
             }
 
             let html = '';
-            data.forEach((item, index) => {
+            data.forEach((item) => {
                 html += `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-3 text-slate-600">${item.tanggal}</td>
@@ -523,11 +519,11 @@
                                 <th>Q2 (Prosedur)</th>
                                 <th>Q3 (Waktu)</th>
                                 <th>Q4 (Biaya)</th>
-                                <th>Q5 (Produk)</th>
-                                <th>Q6 (Kompetensi)</th>
-                                <th>Q7 (Perilaku)</th>
-                                <th>Q8 (Pengaduan)</th>
-                                <th>Q9 (Sarpras)</th>
+                                <th>Q5 (Sarpras)</th>
+                                <th>Q6 (Produk)</th>
+                                <th>Q7 (Kompetensi)</th>
+                                <th>Q8 (Perilaku)</th>
+                                <th>Q9 (Pengaduan)</th>
                                 <th>Rata-Rata Skor</th>
                                 <th>Catatan / Saran</th>
                             </tr>
